@@ -1,0 +1,23 @@
+
+
+
+#needed for the program to work:
+
+data/settings.json
+
+media/logo.png
+
+
+#not important:
+
+main.py
+
+start.sh
+
+data/prices/*
+
+data/log data.csv
+
+
+#no commit for now:
+documentation/*
