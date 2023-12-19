@@ -43,8 +43,7 @@ class HeatingControl(Thread):
         self.current_price_ = 0
         self.price_limit_ = price_limit #jos tämä sähkönhinta alittuu, lämmitys on kokoajan päällä
 
-        self.timelimit_,timer = 3,0 #tarkistetaan onky nykyinen tunti halvimpien joukossa ja päivitetään hintatiedot
-        self.timelimit2_,timer2 = 5,0 #temperature
+        self.timelimit_, = 7 #tarkistetaan alittaako lämpötila rajan, 7 sekunnin välein
 
 
     def Stop(self):
@@ -162,18 +161,22 @@ class HeatingControl(Thread):
             
         
         Write48hPricesToJSON() #update prices
-
+            
 
         #alustetaan ajastimet
         timer = time.time()
-        timer2 = time.time()
-
 
 
         self.ready_ = True
         while True: #main loop
 
-            if self.running_ == True:
+
+            
+            if self.running_ == True:  #jos automaattinen ohjaus päällä
+                Write48hPricesToJSON() #update prices
+                self.__IsChapestHour()
+            
+
 
                 if self.current_price_ < self.price_limit_: #sähkönhinta alittaa rajan
                     if self.temp_tracking_ == False or self.temp_tracking_ == True and self.current_temp_ < self.max_temp_: #jos lämmityksen seuranta päällä, varmistetaan että maksimilämpötila ei ylity
@@ -184,37 +187,33 @@ class HeatingControl(Thread):
 
 
 
-                elif time.time() - timer > self.timelimit_: #sähkön hinta
+
+                
+                #sähkönhinta ei alita rajaa:                  
+                elif self.is_chapest_hour_ : #nykyinen tunti halvimpien joukossa
+                    if self.temp_tracking_ == False or self.self.temp_tracking_ == True and self.current_temp_ < self.max_temp_: #jos lämmityksen seuranta päällä, varmistetaan että maksimilämpötila ei ylity
+                        if self.heating_on_ == False: #jos lämmitys pois päältä
+                            RelayControl(True)
+                            self.heating_on_ = True
+                            self.WriteLogData(True,True) #save event to log data file
+
+
+                else: #jos nykyinen tunti ei ole halvimpien joukossa
+                    if self.temp_tracking_ == True and self.error_in_temp_read_ == False and self.current_temp_ <= self.thermal_limit_ : #lämpötila alittaa rajan
+                        if self.heating_on_ == False: #jos lämmitys pois päältä
+                            RelayControl(True) #set heating on
+                            self.heating_on_ = True
+                            self.WriteLogData(True,True) #save event to log data file
+                    else:
+                        if self.heating_on_ == True: #jos lämmitys päällä 
+                            RelayControl(False) #set heating off
+                            self.heating_on_ = False
+                            self.WriteLogData(False,True) #save event to log data file
+
+
+
+                if self.temp_tracking_ == True and self.error_in_temp_read_== False and time.time() - timer > self.timelimit_: #lämpötila
                     timer = time.time()
-                    Write48hPricesToJSON() #update prices
-                    
-                                        
-                    
-                    if self.__IsChapestHour(): #nykyinen tunti halvimpien joukossa
-                        
-                        if self.temp_tracking_ == False or self.self.temp_tracking_ == True and self.current_temp_ < self.max_temp_: #jos lämmityksen seuranta päällä, varmistetaan että maksimilämpötila ei ylity
-                            if self.heating_on_ == False: #jos lämmitys pois päältä
-                                RelayControl(True)
-                                self.heating_on_ = True
-                                self.WriteLogData(True,True) #save event to log data file
-
-
-                    else: #jos nykyinen tunti ei ole halvimpien joukossa
-                        if self.temp_tracking_ == True and self.error_in_temp_read_ == False and self.current_temp_ <= self.thermal_limit_ : #lämpötila alittaa rajan
-                            if self.heating_on_ == False: #jos lämmitys pois päältä
-                                RelayControl(True) #set heating on
-                                self.heating_on_ = True
-                                self.WriteLogData(True,True) #save event to log data file
-                        else:
-                            if self.heating_on_ == True: #jos lämmitys päällä 
-                                RelayControl(False) #set heating off
-                                self.heating_on_ = False
-                                self.WriteLogData(False,True) #save event to log data file
-
-
-
-                if self.temp_tracking_ == True and self.error_in_temp_read_== False and time.time() - timer2 > self.timelimit2_: #lämpötila
-                    timer2 = time.time()
                     
                     self.current_temp_ = TempRead()
                     if self.current_temp_ == None: #Error in temperature measurement
@@ -240,7 +239,7 @@ class HeatingControl(Thread):
 
 
 
-            time.sleep(0.5) #delay
+            time.sleep(2) #delay
 
 
 
