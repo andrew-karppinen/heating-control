@@ -43,7 +43,7 @@ class HeatingControl(Thread):
         self.current_price_ = 0
         self.price_limit_ = price_limit #jos tämä sähkönhinta alittuu, lämmitys on kokoajan päällä
 
-        self.timelimit_, = 7 #tarkistetaan alittaako lämpötila rajan, 7 sekunnin välein
+        self.timelimit_ = 7 #tarkistetaan alittaako lämpötila rajan, 7 sekunnin välein
 
 
     def Stop(self):
