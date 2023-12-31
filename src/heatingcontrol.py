@@ -35,6 +35,7 @@ class HeatingControl(Thread):
         self.max_temp_ = 0 #jos tämä lämpötila ylittyy lämmitystä ei pideät päällä
         self.temp_tracking_ = True
         
+        self.error_in_internet_connection_ = True
         self.error_in_temp_read_ = True #lämötilan mittauksessa virhe kunnes toisin todetaan
         self.from_48_hour_ = from_48_hour #käytetäänkö 12 vai 42 tunnin aikaikkunaa hintojen vertailuun
 
@@ -51,14 +52,14 @@ class HeatingControl(Thread):
         GPIO.cleanup() #clear gpio pins
         exit() #kill this thread
 
-    def WriteLogData(self,on:bool,auto:bool):
+    def WriteLogData(self):
         '''
         write events to csv file
         '''
         time = datetime.today().strftime('%Y-%m-%d %H:%M:%S') #get current time
 
         log_data_file = open("data/log data.csv","a")
-        log_data_file.write(f"{time};{auto};{on};{self.current_price_};{self.current_temp_};{self.thermal_limit_};{self.from_48_hour_};{self.hour_count_};{self.thermal_limit_}\n")
+        log_data_file.write(f"{time};{self.running_};{self.heating_on_};{self.current_price_};{self.temp_tracking_};{self.current_temp_};{self.thermal_limit_};{self.max_temp_};{self.from_48_hour_};{self.hour_count_}\n")
         log_data_file.close()
         
     def __IsChapestHour(self): #private method
@@ -93,8 +94,7 @@ class HeatingControl(Thread):
             json_data = json.load(json_file)
 
         #get current price:        
-        api_endpoint = f"https://api.porssisahko.net/v1/price.json?date={today}&hour={hour}" #api endpoint
-        self.current_price_ =  requests.get(api_endpoint).json()['price'] #get json
+        self.current_price_ =  GetCurrentPrice(json_data) #get json
 
 
         if self.from_48_hour_ == True: #haetaan 48 tunnin hintatiedot
@@ -137,7 +137,7 @@ class HeatingControl(Thread):
             self.running_ = False
             RelayControl(True) 
             self.heating_on_ = True 
-            self.WriteLogData(True,False) #save event to log data file
+            self.WriteLogData() #save event to log data file
 
     
     def SetManuallyOff(self):
@@ -146,7 +146,7 @@ class HeatingControl(Thread):
             self.running_ = False
             RelayControl(False)
             self.heating_on_ = False
-            self.WriteLogData(False,False) #save event to log data file
+            self.WriteLogData() #save event to log data file
 
     
     def run(self):
@@ -160,8 +160,10 @@ class HeatingControl(Thread):
             self.error_in_temp_read_ = False  
             
         
-        Write48hPricesToJSON() #update prices
-            
+        if Write48hPricesToJSON() == False: #update prices and check internet connection
+            self.error_in_internet_connection_ = True
+        else: 
+            self.error_in_internet_connection_ = False
 
         #alustetaan ajastimet
         timer = time.time()
@@ -169,11 +171,24 @@ class HeatingControl(Thread):
 
         self.ready_ = True
         while True: #main loop
-
-
             
             if self.running_ == True:  #jos automaattinen ohjaus päällä
-                Write48hPricesToJSON() #update prices
+                
+                
+                if Write48hPricesToJSON() == False: #update prices
+                    self.error_in_internet_connection_ = True #virhe hintojen haussa
+                    if self.temp_tracking_ == False or self.temp_tracking_ == True and self.current_temp_ < self.max_temp_: #jos lämmityksen seuranta päällä, varmistetaan että maksimilämpötila ei ylity
+                        
+                        #lämmitys päälle
+                        RelayControl(True)
+                        self.heating_on_ = True
+                        self.WriteLogData() #save event to log data file  
+                    
+                    continue
+                else: 
+                    self.error_in_internet_connection_ = False
+                    
+                
                 self.__IsChapestHour()
             
 
@@ -183,7 +198,7 @@ class HeatingControl(Thread):
                         if self.heating_on_ == False: #jos lämmitys pois päältä
                             RelayControl(True)
                             self.heating_on_ = True
-                            self.WriteLogData(True,True) #save event to log data file  
+                            self.WriteLogData() #save event to log data file  
 
 
 
@@ -195,7 +210,7 @@ class HeatingControl(Thread):
                         if self.heating_on_ == False: #jos lämmitys pois päältä
                             RelayControl(True)
                             self.heating_on_ = True
-                            self.WriteLogData(True,True) #save event to log data file
+                            self.WriteLogData() #save event to log data file
 
 
                 else: #jos nykyinen tunti ei ole halvimpien joukossa
@@ -203,12 +218,12 @@ class HeatingControl(Thread):
                         if self.heating_on_ == False: #jos lämmitys pois päältä
                             RelayControl(True) #set heating on
                             self.heating_on_ = True
-                            self.WriteLogData(True,True) #save event to log data file
+                            self.WriteLogData() #save event to log data file
                     else:
                         if self.heating_on_ == True: #jos lämmitys päällä 
                             RelayControl(False) #set heating off
                             self.heating_on_ = False
-                            self.WriteLogData(False,True) #save event to log data file
+                            self.WriteLogData() #save event to log data file
 
 
 
@@ -228,14 +243,14 @@ class HeatingControl(Thread):
 
                             RelayControl(True)
                             self.heating_on_ = True
-                            self.WriteLogData(True,True) #save event to log data file
+                            self.WriteLogData() #save event to log data file
 
                         
                     elif self.__IsChapestHour() == False: #nykyinen tunti ei halvimpien joukssa
                         if self.heating_on_ == True: #jos lämmitys päällä 
                             RelayControl(False) #set heating off
                             self.heating_on_ = False #set heating off
-                            self.WriteLogData(False,True) #save event to log data file
+                            self.WriteLogData() #save event to log data file
 
 
 
