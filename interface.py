@@ -122,7 +122,7 @@ class ControlPanel:
             [pg.Text(f"",key="hinta_nyt", size=(50, 1),font=('Arial Bold', 11))],
             [pg.Text(f"",key="lammitys_paalla",size=(50, 1), font=('Arial Bold', 11))],
             [pg.Text(f"",key="lampotila_nyt", size=(50, 1),font=('Arial Bold', 11))],
-    
+            [pg.Text(f"",key="virhe_yhteydessa", size=(50, 1),font=('Arial Bold', 11))],
             [pg.Radio('Lämmitys pois','settings',key='lammitys_pois', default=self.settings_['manually_off']),pg.Radio('Automaattinen ohjaus','settings',key ="automaattinen_ohjaus",default=self.settings_['auto']),pg.Radio("Lämmitys päälle",'settings',key="lammitys_paalle",default=self.settings_['manually_on'])],
             [pg.Checkbox('Käytä lämpötilan seurantaa',key='lampotilan_seuranta',default=self.settings_['temp_tracing'])],
             [pg.Radio("Käytä 24 tunnin aikaikkunaa","aikaikkuna",key="24tuntia",default=not self.settings_['48h']),pg.Radio("Käytä 48 tunnin aikaikkunaa","aikaikkuna",default=self.settings_['48h'],key="48tuntia")],
@@ -136,8 +136,6 @@ class ControlPanel:
 
         while True:
             event,values = self.ikkuna_.read(timeout=100) #päivitetään arvot vähintään joka 100 millisekuntti
-
-
 
 
             if event == "cancel" or event ==  pg.WIN_CLOSED: #jos ohjelma suljetaan
@@ -157,6 +155,12 @@ class ControlPanel:
                     self.ikkuna_['lampotilan_seuranta'].update(False)
                     self.ikkuna_["lampotila_nyt"].update("Virhe lämpötilan mittauksessa")
                 
+                if self.heatingcontrol_.error_in_internet_connection_ == True: #jos hintojen haussa ongelmia
+                    self.ikkuna_["virhe_yhteydessa"].update("Virhe hintojen haussa!")
+                else: #ei ongelmia hintojen haussa
+                    self.ikkuna_["virhe_yhteydessa"].update("Hinnat haettu onnistuneesti!")
+                    
+
                 
                 if self.heatingcontrol_.is_chapest_hour_:
                     self.ikkuna_["halvimpien_joukossa"].update(f"Nykyinen tunti on halvimpien {values['tuntimaara']} tuntien joukossa!")
@@ -167,7 +171,7 @@ class ControlPanel:
                 else:
                     self.ikkuna_["lammitys_paalla"].update(f"Lämmitys ei ole tällä hetkellä päällä!")
 
-                self.ikkuna_["hinta_nyt"].update(f"Sähkönhinta nyt: {self.heatingcontrol_.current_price_}")
+                self.ikkuna_["hinta_nyt"].update(f"Sähkönhinta nyt: {self.heatingcontrol_.current_price_} snt")
                 
     
 
