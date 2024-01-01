@@ -105,7 +105,7 @@ class HeatingControl(Thread):
         else: #haetaan 24 tunnin hintatiedot
             prices = GetCurrentDayPrices(json_data)
         prices.sort()
-        if self.current_price_ <= prices[self.hour_count_]: #if the current price is among the lowest
+        if self.current_price_ <= prices[self.hour_count_-1]: #if the current price is among the lowest
             self.is_chapest_hour_ = True
             return True
         else:

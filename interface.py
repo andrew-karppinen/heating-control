@@ -125,7 +125,7 @@ class ControlPanel:
             [pg.Text(f"",key="virhe_yhteydessa", size=(50, 1),font=('Arial Bold', 11))],
             [pg.Radio('Lämmitys pois','settings',key='lammitys_pois', default=self.settings_['manually_off']),pg.Radio('Automaattinen ohjaus','settings',key ="automaattinen_ohjaus",default=self.settings_['auto']),pg.Radio("Lämmitys päälle",'settings',key="lammitys_paalle",default=self.settings_['manually_on'])],
             [pg.Checkbox('Käytä lämpötilan seurantaa',key='lampotilan_seuranta',default=self.settings_['temp_tracing'])],
-            [pg.Radio("Käytä 24 tunnin aikaikkunaa","aikaikkuna",key="24tuntia",default=not self.settings_['48h']),pg.Radio("Käytä 48 tunnin aikaikkunaa","aikaikkuna",default=self.settings_['48h'],key="48tuntia")],
+            [pg.Radio("Käytä 23 tunnin aikaikkunaa","aikaikkuna",key="23tuntia",default=not self.settings_['48h']),pg.Radio("Käytä 48 tunnin aikaikkunaa","aikaikkuna",default=self.settings_['48h'],key="48tuntia")],
             [pg.Button("Käytä nykyisiä asetuksia oletuksena",key="tallenna")]
         ]
 
@@ -193,7 +193,7 @@ class ControlPanel:
                 pg.popup("Tallennetut asetukset otetaan oletuksena käyttöön kun sovellus käynnistetään")
             
             #tarkistetaan radio buttonien tila
-            if values['24tuntia'] == True: #24 tunnin aikaikkuna käytössä
+            if values['23tuntia'] == True: #24 tunnin aikaikkuna käytössä
                 if values["tuntimaara"] > 23:
                     self.ikkuna_["tuntimaara"].update(23)
                     self.heatingcontrol_.SetChapestHour(23)
