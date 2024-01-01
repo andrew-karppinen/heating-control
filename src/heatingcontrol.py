@@ -32,7 +32,7 @@ class HeatingControl(Thread):
 
         self.hour_count_ = hour_count
         self.thermal_limit_ = thermal_limit
-        self.max_temp_ = 0 #jos tämä lämpötila ylittyy lämmitystä ei pideät päällä
+        self.max_temp_ = 0 #jos tämä lämpötila ylittyy lämmitystä ei pidetä päällä
         self.temp_tracking_ = True
         
         self.error_in_internet_connection_ = True
@@ -184,7 +184,8 @@ class HeatingControl(Thread):
 
         self.ready_ = True
         while True: #main loop
-            
+            time.sleep(2) #delay
+
             if self.running_ == True:  #jos automaattinen ohjaus päällä
                 
                 
@@ -236,7 +237,6 @@ class HeatingControl(Thread):
 
 
 
-            time.sleep(2) #delay
 
 
 

@@ -33,7 +33,13 @@ def GetCurrentPrice(jsondata)->float:
 
     for i in prices:
 
-        if muunna_aikaleima(i["startDate"]).day == datetime.now().day and muunna_aikaleima(i["startDate"]).hour == datetime.now().hour-2:
+        #get the current time and change it to match the Finnish time zone:
+        current_time = datetime.now()
+        current_time -= timedelta(hours=2)
+
+
+
+        if muunna_aikaleima(i["startDate"]).day == current_time.day and muunna_aikaleima(i["startDate"]).hour == current_time.hour:
             price = i["price"]
             return price
 
@@ -118,12 +124,12 @@ def Write48hPricesToJSON() -> bool:
 
 if __name__ == "__main__":
 
-    #file = open("data/prices/2023-12-30.json", "r")
-    #json_data = file.read()
-    #file.close()
-    #json_data = json.loads(json_data)
+    file = open("data/prices/2023-12-31.json", "r")
+    json_data = file.read()
+    file.close()
+    json_data = json.loads(json_data)
 
 
     #print(GetCurrentDayPrices(json_data))
-    #print(GetCurrentPrice(json_data))
-    print(Write48hPricesToJSON())
+    print(GetCurrentPrice(json_data))
+    #print(Write48hPricesToJSON())
