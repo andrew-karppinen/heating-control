@@ -17,40 +17,44 @@ GPIO.setwarnings(False) #disable warnings
 
 
 
-
 class HeatingControl(Thread):
 
     def __init__(self,from_48_hour:bool = False,hour_count:int = 6,price_limit:float=5,thermal_limit:int=20):
         Thread.__init__(self)
 
-
+        self.killed_ = False
         self.running_ = False
-        self.ready_ = False #alkutoimet saatu tehtyä (lämpötilan mittaus, sähkönhintojen haku)
+        self.ready_ = False #initialization complete (temperature measurement, picking up electricity prices).
         self.current_temp_ = 0
 
         self.is_chapest_hour_ = False
 
         self.hour_count_ = hour_count
         self.thermal_limit_ = thermal_limit
-        self.max_temp_ = 0 #jos tämä lämpötila ylittyy lämmitystä ei pidetä päällä
+        self.max_temp_ = 0 #If this temperature is exceeded, heating is not kept on.
         self.temp_tracking_ = True
         
         self.error_in_internet_connection_ = True
-        self.error_in_temp_read_ = True #lämötilan mittauksessa virhe kunnes toisin todetaan
-        self.from_48_hour_ = from_48_hour #käytetäänkö 12 vai 42 tunnin aikaikkunaa hintojen vertailuun
+        self.error_in_temp_read_ = True #Temperature measurement error until stated otherwise.
+        self.from_48_hour_ = from_48_hour #Are we using a 12 or 42-hour time window for price comparison?
 
 
         self.heating_on_ = False
         self.current_price_ = 0
-        self.price_limit_ = price_limit #jos tämä sähkönhinta alittuu, lämmitys on kokoajan päällä
+        self.price_limit_ = price_limit #If this electricity price drops, the heating is on continuously.
 
-        self.timelimit_ = 7 #tarkistetaan alittaako lämpötila rajan, 7 sekunnin välein
+        self.timelimit_ = 7 #Checking if the temperature falls below the threshold, every 7 seconds.
+
+        self.using_sql_ = False
+        self.sql_object_ = None
+
+
 
 
     def Stop(self):
         self.running_ = False
         GPIO.cleanup() #clear gpio pins
-        exit() #kill this thread
+        self.killed_ = True
 
     def WriteLogData(self):
         '''
@@ -61,7 +65,22 @@ class HeatingControl(Thread):
         log_data_file = open("data/log data.csv","a")
         log_data_file.write(f"{time};{self.running_};{self.heating_on_};{self.current_price_};{self.temp_tracking_};{self.current_temp_};{self.thermal_limit_};{self.max_temp_};{self.from_48_hour_};{self.hour_count_}\n")
         log_data_file.close()
+
+
+
+
+
+    def CreateSQLConnection(self,server_ip:str,username:str,password:str):
+        self.sql_object_ = SQLConnection(server_ip,username,password)
         
+    def UsingSQL(self,using:bool):
+        self.using_sql_ = using
+    
+    def GetSettingsFromSQL(self):
+        self.sql_object_.ReadSettingsFromSQL(self)
+
+
+
     def __IsChapestHour(self): #private method
         
         '''
@@ -102,7 +121,7 @@ class HeatingControl(Thread):
             prices = []
             for i in range(48):
                 prices.append(json_data["prices"][i]["price"])
-        else: #haetaan 24 tunnin hintatiedot
+        else: #get 24-hour price data.
             prices = GetCurrentDayPrices(json_data)
         prices.sort()
         if self.current_price_ <= prices[self.hour_count_-1]: #if the current price is among the lowest
@@ -117,7 +136,7 @@ class HeatingControl(Thread):
         self.temp_tracking_ = on
 
     def SetThermalLimit(self,limit:int)->None:
-        #Asettaa uuden lämpötilarajan
+        #Set new thermal limit
         self.thermal_limit_ = limit
 
     def SetMaxTemp(self,max_temp:int)->None:
@@ -130,10 +149,12 @@ class HeatingControl(Thread):
         self.price_limit_ = limit
     
     def TurnOnHeatingControl(self):
+        #turn on automatic heating control
         self.running_ = True    
     
     def SetManuallyOn(self):
-        if self.heating_on_ == False: #jos lämmitys pois päältä, laitetaan se päälle
+        #set manually
+        if self.heating_on_ == False: #if heating is off, turn it on
             self.running_ = False
             RelayControl(True) 
             self.heating_on_ = True 
@@ -141,7 +162,7 @@ class HeatingControl(Thread):
 
     
     def SetManuallyOff(self):
-        if self.heating_on_ == True: #jos lämmitys päällä, laitetaan se pois päältä
+        if self.heating_on_ == True: #if heating is on, turn it off
 
             self.running_ = False
             RelayControl(False)
@@ -151,14 +172,14 @@ class HeatingControl(Thread):
 
 
     def __SetHeatingOn(self):
-        if self.temp_tracking_ == False or self.temp_tracking_ == True and self.current_temp_ < self.max_temp_:  # jos lämmityksen seuranta päällä, varmistetaan että maksimilämpötila ei ylity
-            if self.heating_on_ == False:  # jos lämmitys pois päältä
+        if self.temp_tracking_ == False or self.temp_tracking_ == True and self.current_temp_ < self.max_temp_:  #If heating tracking is enabled, ensure that the maximum temperature is not exceeded.
+            if self.heating_on_ == False:  #if heating is on
                 RelayControl(True)
                 self.heating_on_ = True
                 self.WriteLogData()  # save event to log data file
 
     def __SetHeatingOff(self):
-        if self.heating_on_ == True:  # jos lämmitys päällä
+        if self.heating_on_ == True:  #if heating is on
             RelayControl(False)  # set heating off
             self.heating_on_ = False
             self.WriteLogData()  # save event to log data file
@@ -178,19 +199,32 @@ class HeatingControl(Thread):
         else: 
             self.error_in_internet_connection_ = False
 
-        #alustetaan ajastimet
+        #init timers
         timer = time.time()
 
 
         self.ready_ = True
         while True: #main loop
             time.sleep(2) #delay
+            
+            if self.killed_ == True:
+                exit() #kill python process
 
-            if self.running_ == True:  #jos automaattinen ohjaus päällä
+
+
+
+
+            if self.using_sql_ == True:
+                self.sql_object_.ReadSettingsFromSQL(self) #read settings from sql database
+
+
+
+
+            if self.running_ == True:  #if automaticly heating
                 
                 
                 if Write48hPricesToJSON() == False: #update prices
-                    self.error_in_internet_connection_ = True #virhe hintojen haussa
+                    self.error_in_internet_connection_ = True #Error getting prices.
                     self.__SetHeatingOn()
 
                     continue
@@ -201,24 +235,24 @@ class HeatingControl(Thread):
                 self.__IsChapestHour()
             
 
-                if self.current_price_ < self.price_limit_: #sähkönhinta alittaa rajan
+                if self.current_price_ < self.price_limit_: #price falls below the threshold.
                     self.__SetHeatingOn()
 
 
 
-                #sähkönhinta ei alita rajaa:                  
-                elif self.is_chapest_hour_ : #nykyinen tunti halvimpien joukossa
+                #price not falls below the threshold.
+                elif self.is_chapest_hour_ : #the current hour is among the cheapest.
                     self.__SetHeatingOn()
 
-                else: #jos nykyinen tunti ei ole halvimpien joukossa
-                    if self.temp_tracking_ == True and self.error_in_temp_read_ == False and self.current_temp_ <= self.thermal_limit_ : #lämpötila alittaa rajan
+                else: #the current hour is not among the cheapest.
+                    if self.temp_tracking_ == True and self.error_in_temp_read_ == False and self.current_temp_ <= self.thermal_limit_ : #current temperature falls below the threshold
                         self.__SetHeatingOn()
 
                     else:
                         self.__SetHeatingOff()
 
 
-                if self.temp_tracking_ == True and self.error_in_temp_read_== False and time.time() - timer > self.timelimit_: #lämpötila
+                if self.temp_tracking_ == True and self.error_in_temp_read_== False and time.time() - timer > self.timelimit_: #temperature
                     timer = time.time()
                     
                     self.current_temp_ = TempRead()
@@ -228,11 +262,11 @@ class HeatingControl(Thread):
                         continue
 
 
-                    if self.current_temp_ < self.thermal_limit_: #nykyinen lämpötila alittaa rajan
+                    if self.current_temp_ < self.thermal_limit_: #current temperature falls below the threshold
                         self.__SetHeatingOn()
 
                         
-                    elif self.__IsChapestHour() == False: #nykyinen tunti ei halvimpien joukssa
+                    elif self.__IsChapestHour() == False: #The current hour is not among the cheapest
                         self.__SetHeatingOff()
 
 
