@@ -5,6 +5,7 @@ from threading import Thread
 
 import PySimpleGUI as pg
 
+from datetime import datetime
 
 
 pg.theme("DarkAmber") #asetta tyylin
@@ -39,32 +40,36 @@ def SaveSettings(thermal_limit:int,max_temperature:int,price_limit:float,hour_co
         
 
 def ViewHours(data):
-
-
     pg.theme('LightGrey1')  # Set the theme
-
+    
+    # Parse timestamp strings into datetime objects
+    for item in data:
+        item[0] = datetime.fromisoformat(item[0][:-1])
+    
+    # Sort data based on timestamp
+    data.sort(key=lambda x: x[0])
+    
     layout = []
     row = []
     row_count = 0
     
-    current_time = datetime.now()
-    
-    current_day = current_time.day
-    current_hour = current_time.hour
+    current_datetime = datetime.now()
+    current_hour = current_datetime.hour
+    current_date = current_datetime.date()
     
     for item in data:
-        time = item[0]
+        timestamp = item[0]
         price = item[1]
         boolean_value = item[2]
         boolean_indicator = "True" if boolean_value else "False"
         
         # Determine the background color of the row
-        time_obj = datetime.strptime(time, '%Y-%m-%dT%H:%M:%S.%fZ')
+        timestamp_hour = timestamp.hour
+        timestamp_date = timestamp.date()
         
-        #set item background color
-        background_color = 'lightgreen' if time_obj.hour == current_hour and time_obj.day == current_day  else 'lightgrey'
+        background_color = 'lightgreen' if timestamp_hour == current_hour and timestamp_date == current_date else 'lightgrey'
         
-        row.append(pg.Text(f"Time: {time}, Price: {price}, Boolean: {boolean_indicator}", background_color=background_color))
+        row.append(pg.Text(f"Time: {timestamp}, Price: {price}, Boolean: {boolean_indicator}", background_color=background_color))
         
         row_count += 1
         
@@ -74,15 +79,11 @@ def ViewHours(data):
             row = []
             row_count = 0
     
-
     # Add any remaining rows
     if row:
         layout.append(row)
-    
-
 
     layout.append([pg.Button("Close",key="close")]) #add close button
-
 
     window = pg.Window('Data Display Window', layout, resizable=True, finalize=True)
     
@@ -90,11 +91,11 @@ def ViewHours(data):
         event, values = window.read()
         if event == pg.WINDOW_CLOSED:
             break
+
         elif event == "close":
             break
 
     window.close()
-
 
 
 class ControlPanel:
