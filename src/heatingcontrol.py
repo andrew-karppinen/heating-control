@@ -70,6 +70,7 @@ class HeatingControl(Thread):
 
 
 
+
     def CreateSQLConnection(self,server_ip:str,username:str,password:str):
         self.sql_object_ = SQLConnection(server_ip,username,password)
         
@@ -80,7 +81,49 @@ class HeatingControl(Thread):
         self.sql_object_.ReadSettingsFromSQL(self)
 
 
+    def Hours(self)->list:
+        '''
+        The function returns 48 records containing information about the price, time, and whether the heating is on during that hour
+        list = [starttime,price,heatingon]
+        '''
 
+
+        today = str(date.today()) #current day
+        yesterday = str(date.today() - timedelta(days=1)) #yesterday
+
+        if os.path.isfile(f"data/prices/{today}.json") == True: #if today data is exist
+            json_file_name = f"data/prices/{today}.json"
+        elif os.path.isfile(f"data/prices/{yesterday}.json") == True: #if yesterday data is exist
+            json_file_name = f"data/prices/{yesterday}.json"
+        else:
+            raise Exception("json file is not exist")
+
+
+        with open(json_file_name) as json_file:
+            json_data = json.load(json_file)
+
+
+        hours = []
+        json_data = json_data["prices"]
+        sorted_list = sorted(json_data, key=lambda x: x["price"]) #sort hours by price
+
+        counter = 0
+        for hour in sorted_list:
+
+            if counter <= self.hour_count_:
+                hours.append([hour["startDate"],hour["price"],True])
+
+            elif hour["price"] < self.price_limit_:
+                hours.append([hour["startDate"],hour["price"],True])
+            else:
+                hours.append([hour["startDate"],hour["price"],False])
+
+
+            counter += 1
+
+        
+        return hours
+        
     def __IsChapestHour(self): #private method
         
         '''

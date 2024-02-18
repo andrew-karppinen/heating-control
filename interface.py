@@ -38,6 +38,63 @@ def SaveSettings(thermal_limit:int,max_temperature:int,price_limit:float,hour_co
         outfile.write(json_object)
         
 
+def ViewHours(data):
+
+
+    pg.theme('LightGrey1')  # Set the theme
+
+    layout = []
+    row = []
+    row_count = 0
+    
+    current_time = datetime.now()
+    
+    current_day = current_time.day
+    current_hour = current_time.hour
+    
+    for item in data:
+        time = item[0]
+        price = item[1]
+        boolean_value = item[2]
+        boolean_indicator = "True" if boolean_value else "False"
+        
+        # Determine the background color of the row
+        time_obj = datetime.strptime(time, '%Y-%m-%dT%H:%M:%S.%fZ')
+        
+        #set item background color
+        background_color = 'lightgreen' if time_obj.hour == current_hour and time_obj.day == current_day  else 'lightgrey'
+        
+        row.append(pg.Text(f"Time: {time}, Price: {price}, Boolean: {boolean_indicator}", background_color=background_color))
+        
+        row_count += 1
+        
+        # Split rows into multiple columns if they are too wide
+        if row_count == 5:
+            layout.append(row)
+            row = []
+            row_count = 0
+    
+
+    # Add any remaining rows
+    if row:
+        layout.append(row)
+    
+
+
+    layout.append([pg.Button("Close",key="close")]) #add close button
+
+
+    window = pg.Window('Data Display Window', layout, resizable=True, finalize=True)
+    
+    while True:
+        event, values = window.read()
+        if event == pg.WINDOW_CLOSED:
+            break
+        elif event == "close":
+            break
+
+    window.close()
+
 
 
 class ControlPanel:
@@ -58,6 +115,33 @@ class ControlPanel:
         self.LoadingScreen()
 
 
+    def SQLsettings(self):
+        layout = [
+        [pg.Text("Palvelimen osoite:")],
+        [pg.Input()],
+        [pg.Text("Käyttäjä:")],
+        [pg.Input()],
+        [pg.Text("Salasana:")],
+        [pg.Input()],
+        [pg.Button("Testaa yhteyttä"),pg.Button("Tallenna"),pg.Button("Peruuta")]
+        ]#ikkunaan tulevat jutut
+
+
+        
+        ikkuna = pg.Window("Lämmityksenohjaus",layout) #luo ikkunan
+        
+        lataus = 0 #muuttuja latausbaarin animointia varten
+        while True:
+            event,values = ikkuna.read() #päivitetään arvot vähintään joka 100 millisekuntti
+            
+            if event == "Peruuta" or event ==  pg.WIN_CLOSED: #jos ohjelma suljetaan
+                ikkuna.close() #suljetaan ikkuna
+                return
+            
+            
+                
+                
+
     def LoadingScreen(self):
         self.layout_ = [
         [pg.Text("Käynnistetään sovellusta")], 
@@ -66,27 +150,27 @@ class ControlPanel:
         ]
 
         
-        self.ikkuna_ = pg.Window("Lämmityksenohjaus",self.layout_,size=(700,400)) #luo ikkunan
+        self.screen_ = pg.Window("Lämmityksenohjaus", self.layout_, size=(700, 400)) #luo ikkunan
         
         lataus = 0 #muuttuja latausbaarin animointia varten
         while True:
             lataus+=1
-            event,values = self.ikkuna_.read(timeout=100) #päivitetään arvot vähintään joka 100 millisekuntti
+            event,values = self.screen_.read(timeout=100) #päivitetään arvot vähintään joka 100 millisekuntti
             
             if event == "cancel" or event ==  pg.WIN_CLOSED: #jos ohjelma suljetaan
-                self.ikkuna_.close() #suljetaan ikkuna
+                self.screen_.close() #suljetaan ikkuna
 
                 self.heatingcontrol_.Stop() #sulkee gpio pinnit 
             
             if lataus > 20:
                 lataus = 0
             else:
-                self.ikkuna_["latausruutu"].update(lataus)
+                self.screen_["latausruutu"].update(lataus)
             
             
             
             if self.heatingcontrol_.ready_ == True:
-                self.ikkuna_.close()
+                self.screen_.close()
                 self.Main()
             
         
@@ -101,21 +185,21 @@ class ControlPanel:
             [pg.Text("Lämpötilaraja:",size=(30,1),font=('Arial Bold', 11), border_width=5)],
             [pg.Slider(range=(0, 30), default_value=self.settings_['thermal_limit'],
                         expand_x=True, enable_events=True,
-                        orientation='horizontal', key='lampotilaraja')],
+                        orientation='horizontal', key='thermal_limit')],
             
             [pg.Text("Maksimilämpötila:",size=(30, 1), font=('Arial Bold', 11), border_width=5)],
-            [pg.Slider(range=(10,40),default_value=self.settings_['max_temperature'],key='max_lampotila',expand_x=True, enable_events=True,
+            [pg.Slider(range=(10,40),default_value=self.settings_['max_temperature'],key='max_temp',expand_x=True, enable_events=True,
                        orientation='horizontal')],
             
             [pg.Text("Tuntimäärä:", size=(30, 1), font=('Arial Bold', 11), border_width=5)],
             [pg.Slider(range=(1, 47), default_value=self.settings_['hour_count'],
                        expand_x=True, enable_events=True,
-                       orientation='horizontal', key='tuntimaara')],
+                       orientation='horizontal', key='hour_count')],
             
             [pg.Text("Kytke lämmitys päälle jos sähkönhinta alle:", size=(40, 1), font=('Arial Bold', 11), border_width=5)],
             [pg.Slider(range=(0, 30), default_value=self.settings_["price_limit"],
                        expand_x=True, enable_events=True,
-                       orientation='horizontal', key='min_hinta')],
+                       orientation='horizontal', key='min_price')],
             
             
             [pg.Text(f"",key="halvimpien_joukossa",size=(50, 1), font=('Arial Bold', 11))],
@@ -126,76 +210,102 @@ class ControlPanel:
             [pg.Radio('Lämmitys pois','settings',key='lammitys_pois', default=self.settings_['manually_off']),pg.Radio('Automaattinen ohjaus','settings',key ="automaattinen_ohjaus",default=self.settings_['auto']),pg.Radio("Lämmitys päälle",'settings',key="lammitys_paalle",default=self.settings_['manually_on'])],
             [pg.Checkbox('Käytä lämpötilan seurantaa',key='lampotilan_seuranta',default=self.settings_['temp_tracing'])],
             [pg.Radio("Käytä 23 tunnin aikaikkunaa","aikaikkuna",key="23tuntia",default=not self.settings_['48h']),pg.Radio("Käytä 48 tunnin aikaikkunaa","aikaikkuna",default=self.settings_['48h'],key="48tuntia")],
-            [pg.Button("Käytä nykyisiä asetuksia oletuksena",key="tallenna")]
+            [pg.Button("Käytä SQL yhteyttä",key="kaytasql")],
+            [pg.Button("Käytä nykyisiä asetuksia oletuksena",key="tallenna")],
+            [pg.Button("Näytä tunnit",key="view_hours")],
+            [pg.Button("SQL asetukset")]
         ]
 
 
-        self.ikkuna_ = pg.Window("Lämmityksenohjaus",self.layout_,size=(700,650)) #luo ikkunan
+        self.screen_ = pg.Window("Lämmityksenohjaus", self.layout_, size=(700, 650)) #luo ikkunan
 
 
 
         while True:
-            event,values = self.ikkuna_.read(timeout=100) #päivitetään arvot vähintään joka 100 millisekuntti
+            event,values = self.screen_.read(timeout=100) #päivitetään arvot vähintään joka 100 millisekuntti
 
+
+            #luetaan asetukset heating_control --> interface            
 
             if event == "cancel" or event ==  pg.WIN_CLOSED: #jos ohjelma suljetaan
-                self.ikkuna_.close() #suljetaan ikkuna
+                self.screen_.close() #suljetaan ikkuna
 
                 self.heatingcontrol_.Stop() #sulkee gpio pinnit 
+                exit()
+            
 
-
+            
+            elif event == "view_hours":
+                hours =self.heatingcontrol_.Hours()
+                ViewHours(hours)
+            
+            
             elif event == pg.TIMEOUT_EVENT: #ajoitetut päiviykset
                 
                 if self.heatingcontrol_.error_in_temp_read_ == False: #no error in temperature measurement
-                    self.ikkuna_['lampotilan_seuranta'].update(self.heatingcontrol_.temp_tracking_)
+                    self.screen_['lampotilan_seuranta'].update(self.heatingcontrol_.temp_tracking_)
                     self.heatingcontrol_.TempTracking(values["lampotilan_seuranta"])
-                    self.ikkuna_["lampotila_nyt"].update(f"Nykyinen lämpötila: {self.heatingcontrol_.current_temp_}")
+                    self.screen_["lampotila_nyt"].update(f"Nykyinen lämpötila: {self.heatingcontrol_.current_temp_}")
 
                 else: #error in temperature measurement
-                    self.ikkuna_['lampotilan_seuranta'].update(False)
-                    self.ikkuna_["lampotila_nyt"].update("Virhe lämpötilan mittauksessa")
+                    self.screen_['lampotilan_seuranta'].update(False)
+                    self.screen_["lampotila_nyt"].update("Virhe lämpötilan mittauksessa")
                 
                 if self.heatingcontrol_.error_in_internet_connection_ == True: #jos hintojen haussa ongelmia
-                    self.ikkuna_["virhe_yhteydessa"].update("Virhe hintojen haussa!")
+                    self.screen_["virhe_yhteydessa"].update("Virhe hintojen haussa!")
                 else: #ei ongelmia hintojen haussa
-                    self.ikkuna_["virhe_yhteydessa"].update("Hinnat haettu onnistuneesti!")
+                    self.screen_["virhe_yhteydessa"].update("Hinnat haettu onnistuneesti!")
                     
 
                 
                 if self.heatingcontrol_.is_chapest_hour_:
-                    self.ikkuna_["halvimpien_joukossa"].update(f"Nykyinen tunti on halvimpien {values['tuntimaara']} tuntien joukossa!")
+                    self.screen_["halvimpien_joukossa"].update(f"Nykyinen tunti on halvimpien {values['hour_count']} tuntien joukossa!")
                 else:
-                    self.ikkuna_["halvimpien_joukossa"].update(f"Nykyinen tunti ei ole halvimpien {values['tuntimaara']} tuntien joukossa!")
+                    self.screen_["halvimpien_joukossa"].update(f"Nykyinen tunti ei ole halvimpien {values['hour_count']} tuntien joukossa!")
                 if self.heatingcontrol_.heating_on_:
-                    self.ikkuna_["lammitys_paalla"].update(f"Lämmitys on tällä hetkellä päällä!")
+                    self.screen_["lammitys_paalla"].update(f"Lämmitys on tällä hetkellä päällä!")
                 else:
-                    self.ikkuna_["lammitys_paalla"].update(f"Lämmitys ei ole tällä hetkellä päällä!")
+                    self.screen_["lammitys_paalla"].update(f"Lämmitys ei ole tällä hetkellä päällä!")
 
-                self.ikkuna_["hinta_nyt"].update(f"Sähkönhinta nyt: {self.heatingcontrol_.current_price_} snt")
-                
+                self.screen_["hinta_nyt"].update(f"Sähkönhinta nyt: {self.heatingcontrol_.current_price_} snt")
+
+
+
+
+
     
 
             #jos käyttäjä muuttaa jotain asetusta
-            elif event == "tuntimaara":
-                self.heatingcontrol_.SetChapestHour(int(values["tuntimaara"]))
+            elif event == "hour_count":
+                self.heatingcontrol_.SetChapestHour(int(values["hour_count"]))
             
-            elif event == "lampotilaraja":
-                self.heatingcontrol_.SetThermalLimit(int(values["lampotilaraja"]))
+            elif event == "thermal_limit":
+                self.heatingcontrol_.SetThermalLimit(int(values["thermal_limit"]))
  
-            elif event == "max_lampotila":
-                self.heatingcontrol_.SetMaxTemp(int(values["max_lampotila"]))
+            elif event == "max_temp":
+                self.heatingcontrol_.SetMaxTemp(int(values["max_temp"]))
             
-            elif event == "min_hinta":
-                self.heatingcontrol_.SetPriceLimit(values['min_hinta'])
+            elif event == "min_price":
+                self.heatingcontrol_.SetPriceLimit(values['min_price'])
             
             elif event == "tallenna":
-                SaveSettings(int(values["lampotilaraja"]),int(values["max_lampotila"]),values["min_hinta"],int(values["tuntimaara"]),values["48tuntia"],values["automaattinen_ohjaus"],values["lammitys_paalle"],values["lammitys_pois"],values["lampotilan_seuranta"])
+                SaveSettings(int(values["thermal_limit"]),int(values["max_temp"]),values["min_price"],int(values["hour_count"]),values["48tuntia"],values["automaattinen_ohjaus"],values["lammitys_paalle"],values["lammitys_pois"],values["lampotilan_seuranta"])
                 pg.popup("Tallennetut asetukset otetaan oletuksena käyttöön kun sovellus käynnistetään")
+            
+            
+            elif event == "SQL asetukset":
+                self.SQLsettings()
+            elif event == "kaytasql":
+                pass
+                #self.heatingcontrol_.CreateSQLConnection("localhost","remote","BGnbjsuv0Opmk1")
+                #self.heatingcontrol_.UsingSQL(True)
+            
+            
             
             #tarkistetaan radio buttonien tila
             if values['23tuntia'] == True: #24 tunnin aikaikkuna käytössä
-                if values["tuntimaara"] > 23:
-                    self.ikkuna_["tuntimaara"].update(23)
+                if values["hour_count"] > 23:
+                    self.screen_["hour_count"].update(23)
                     self.heatingcontrol_.SetChapestHour(23)
 
                 self.heatingcontrol_.from_48_hour_ = False
@@ -213,7 +323,7 @@ class ControlPanel:
 
 
 
-        self.ikkuna_.close()
+        self.screen_.close()
 
 
 
