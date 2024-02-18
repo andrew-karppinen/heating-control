@@ -33,10 +33,7 @@ def GetCurrentPrice(jsondata)->float:
 
     for i in prices:
 
-        #get the current time and change it to match the Finnish time zone:
         current_time = datetime.now()
-        current_time -= timedelta(hours=2)
-
 
 
         if muunna_aikaleima(i["startDate"]).day == current_time.day and muunna_aikaleima(i["startDate"]).hour == current_time.hour:
@@ -63,6 +60,28 @@ def GetCurrentDayPrices(jsondata)->list:
     return today_prices
 
 
+def convert_to_finland_time(json_data):
+    def muunna_aika(utc_aika_str):
+        # Käsitellään aikavyöhyke manuaalisesti
+        utc_aika_str = utc_aika_str.replace('Z', '+00:00')
+
+        # Muunna merkkijono datetime-objektiksi
+        utc_aika = datetime.strptime(utc_aika_str, '%Y-%m-%dT%H:%M:%S.%f%z')
+
+        # Lisätään kaksi tuntia UTC-aikaan
+        suomen_aika = utc_aika + timedelta(hours=2)
+
+        # Palautetaan Suomen aika merkkijonona samassa muodossa kuin alkuperäinen
+        return suomen_aika.replace(microsecond=0).strftime('%Y-%m-%dT%H:%M:%S.000Z')
+
+    # Kopioidaan syötteenä saatu data, jotta alkuperäistä dataa ei muokata
+    muokattu_data = json_data.copy()
+
+    for price_entry in muokattu_data['prices']:
+        price_entry['startDate'] = muunna_aika(price_entry['startDate'])
+        price_entry['endDate'] = muunna_aika(price_entry['endDate'])
+
+    return muokattu_data
 def Write48hPricesToJSON() -> bool:
 
     '''
@@ -74,7 +93,10 @@ def Write48hPricesToJSON() -> bool:
 
     tiedot tallennetaan json tiedostoon jotka nimetään päivien mukaan, tästä saadaan myös tieto minkä päivän hinnat on jo olemassa jne
     
-    jos hintojen haku esim internetyhteyden takia ei toimi palauttaa False, muuten Ttue
+    jos hintojen haku esim internetyhteyden takia ei toimi palauttaa False, muuten True
+    
+    
+    muuttaa ajan utc ajasta suomen aikaan(2 tuntia vähemmän)
     '''
 
 
@@ -85,9 +107,12 @@ def Write48hPricesToJSON() -> bool:
             api_endpoint = f"https://api.porssisahko.net/v1/latest-prices.json"  # api endpoint
             json_data = requests.get(api_endpoint).json()  # get json
 
+            json_data = convert_to_finland_time(json_data) #convert times to Finnish time zone
             json_object = json.dumps(json_data, indent=4)  # json to str
         except:
             return False
+
+
         
         if name_yesterday == False:
             with open(f"data/prices/{today}.json", "w") as outfile:
@@ -124,12 +149,12 @@ def Write48hPricesToJSON() -> bool:
 
 if __name__ == "__main__":
 
-    file = open("data/prices/2023-12-31.json", "r")
-    json_data = file.read()
-    file.close()
-    json_data = json.loads(json_data)
+    #file = open("data/prices/2023-12-31.json", "r")
+    #json_data = file.read()
+    #file.close()
+    #json_data = json.loads(json_data)
 
 
     #print(GetCurrentDayPrices(json_data))
-    print(GetCurrentPrice(json_data))
-    #print(Write48hPricesToJSON())
+    #print(GetCurrentPrice(json_data))
+    Write48hPricesToJSON()
