@@ -37,56 +37,56 @@ def SaveSettings(thermal_limit:int,max_temperature:int,price_limit:float,hour_co
     
     with open(f"data/settings.json", "w") as outfile:
         outfile.write(json_object)
-        
+
 
 def ViewHours(data):
     pg.theme('LightGrey1')  # Set the theme
-    
+
     # Parse timestamp strings into datetime objects
     for item in data:
         item[0] = datetime.fromisoformat(item[0][:-1])
-    
+
     # Sort data based on timestamp
     data.sort(key=lambda x: x[0])
-    
+
     layout = []
     row = []
     row_count = 0
-    
+
     current_datetime = datetime.now()
     current_hour = current_datetime.hour
     current_date = current_datetime.date()
-    
+
     for item in data:
         timestamp = item[0]
         price = item[1]
         boolean_value = item[2]
         boolean_indicator = "True" if boolean_value else "False"
-        
+
         # Determine the background color of the row
         timestamp_hour = timestamp.hour
         timestamp_date = timestamp.date()
-        
+
         background_color = 'lightgreen' if timestamp_hour == current_hour and timestamp_date == current_date else 'lightgrey'
-        
-        row.append(pg.Text(f"Time: {timestamp}, Price: {price}, Boolean: {boolean_indicator}", background_color=background_color))
-        
+
+        row.append(pg.Text(f"Time: {timestamp}, Price: {price}, Heating on: {boolean_indicator}",background_color=background_color))
+
         row_count += 1
-        
+
         # Split rows into multiple columns if they are too wide
         if row_count == 5:
             layout.append(row)
             row = []
             row_count = 0
-    
+
     # Add any remaining rows
     if row:
         layout.append(row)
 
-    layout.append([pg.Button("Close",key="close")]) #add close button
+    layout.append([pg.Button("Close", key="close")])  # add close button
 
     window = pg.Window('Data Display Window', layout, resizable=True, finalize=True)
-    
+
     while True:
         event, values = window.read()
         if event == pg.WINDOW_CLOSED:
@@ -96,6 +96,7 @@ def ViewHours(data):
             break
 
     window.close()
+
 
 
 class ControlPanel:
@@ -116,7 +117,7 @@ class ControlPanel:
         self.LoadingScreen()
 
 
-    def SQLsettings(self):
+    def SQLsettings(self): #feature not yet enabled
         layout = [
         [pg.Text("Palvelimen osoite:")],
         [pg.Input()],
@@ -126,7 +127,6 @@ class ControlPanel:
         [pg.Input()],
         [pg.Button("Testaa yhteyttä"),pg.Button("Tallenna"),pg.Button("Peruuta")]
         ]#ikkunaan tulevat jutut
-
 
         
         ikkuna = pg.Window("Lämmityksenohjaus",layout) #luo ikkunan
@@ -211,10 +211,8 @@ class ControlPanel:
             [pg.Radio('Lämmitys pois','settings',key='lammitys_pois', default=self.settings_['manually_off']),pg.Radio('Automaattinen ohjaus','settings',key ="automaattinen_ohjaus",default=self.settings_['auto']),pg.Radio("Lämmitys päälle",'settings',key="lammitys_paalle",default=self.settings_['manually_on'])],
             [pg.Checkbox('Käytä lämpötilan seurantaa',key='lampotilan_seuranta',default=self.settings_['temp_tracing'])],
             [pg.Radio("Käytä 23 tunnin aikaikkunaa","aikaikkuna",key="23tuntia",default=not self.settings_['48h']),pg.Radio("Käytä 48 tunnin aikaikkunaa","aikaikkuna",default=self.settings_['48h'],key="48tuntia")],
-            [pg.Button("Käytä SQL yhteyttä",key="kaytasql")],
             [pg.Button("Käytä nykyisiä asetuksia oletuksena",key="tallenna")],
-            [pg.Button("Näytä tunnit",key="view_hours")],
-            [pg.Button("SQL asetukset")]
+            [pg.Button("Näytä tunnit joille lämmitys jakautuu",key="view_hours")]
         ]
 
 
