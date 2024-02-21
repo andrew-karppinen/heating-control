@@ -1,5 +1,7 @@
 
-#  Lämmityksenohjaus sovellus raspberry piille
+#  Lämmityksenohjaus sovellus raspberry piille.
+
+Ohjaa lämmitystä pörssisähkön hinnan mukaan.
 
 ![Kuvakaappaus 2024-02-21 10-36-36](https://github.com/andrew-karppinen/heating-control/assets/99529988/ffc3d48f-85cc-4206-ae21-d91b45234194)
 
