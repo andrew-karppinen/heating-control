@@ -23,7 +23,7 @@ Jos haluat ohjata relettä kytke se raspberry piin pinniin GPIO 27
 
 ### Lämpötila sensori
 
-Halutessi voit kytkeä dht11 tai dht22 pinniin  GPIO 4
+Halutessasi voit kytkeä dht11 tai dht22 pinniin  GPIO 4
 Tällöin tarvitset pythoniin myös Adafruit_DHT kirjaston
 
 Lisätietoa dht11/22 asentamisesta:
