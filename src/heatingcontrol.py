@@ -5,7 +5,6 @@ import time
 from threading import Thread
 from datetime import datetime,date,timedelta
 import requests
-import Adafruit_DHT as dht
 import os
 
 from src import *

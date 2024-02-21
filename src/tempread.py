@@ -1,7 +1,7 @@
 
 
 
-import Adafruit_DHT as dht
+
 
 
 
@@ -12,8 +12,16 @@ def TempRead()->float:
     DHT = 4
     # Read Temp and Hum from DHT22 or DHT11
     #if error return None
-    
+
+
+    try:
+        import Adafruit_DHT as dht #try import dht library
+    except:
+        return None #error with import dht
+
+
     try: #try dht22
+
         h, t = dht.read_retry(dht.DHT22, DHT)
     except:
         try: #try dht11
