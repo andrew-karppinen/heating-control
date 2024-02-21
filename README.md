@@ -1,6 +1,8 @@
 
 #  Lämmityksenohjaus sovellus raspberry piille
 
+![Kuvakaappaus 2024-02-21 10-36-36](https://github.com/andrew-karppinen/heating-control/assets/99529988/ffc3d48f-85cc-4206-ae21-d91b45234194)
+
 
 ### Lataa uusin versio: [releases tab](https://github.com/andrew-karppinen/heating-control/releases/latest)
 
