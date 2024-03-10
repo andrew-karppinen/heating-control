@@ -82,7 +82,7 @@ class HeatingControl(Thread):
 
     def Hours(self)->list:
         '''
-        The function returns 48 records containing information about the price, time, and whether the heating is on during that hour
+        The function returns 23 records containing information about the price, time, and whether the heating is on during that hour
         list = [starttime,price,heatingon]
         '''
 
@@ -104,6 +104,21 @@ class HeatingControl(Thread):
 
         hours = []
         json_data = json_data["prices"]
+        
+        
+        
+        
+
+        today_prices = []
+        for i in json_data:
+
+            if muunna_aikaleima(i["startDate"]).day == datetime.now().day:
+                today_prices.append(i)
+
+        
+        json_data = today_prices
+        
+        
         sorted_list = sorted(json_data, key=lambda x: x["price"]) #sort hours by price
 
         counter = 0
