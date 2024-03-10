@@ -107,24 +107,21 @@ class HeatingControl(Thread):
         
         
         
-        
+        if self.from_48_hour_ == False: #if using 23 hour time window, get current day data
+            today_prices = []
+            for i in json_data:
 
-        today_prices = []
-        for i in json_data:
-
-            if muunna_aikaleima(i["startDate"]).day == datetime.now().day:
-                today_prices.append(i)
-
-        
-        json_data = today_prices
-        
-        
+                if muunna_aikaleima(i["startDate"]).day == datetime.now().day:
+                    today_prices.append(i)
+            json_data = today_prices
+            
+            
         sorted_list = sorted(json_data, key=lambda x: x["price"]) #sort hours by price
 
         counter = 0
         for hour in sorted_list:
 
-            if counter <= self.hour_count_:
+            if counter < self.hour_count_:
                 hours.append([hour["startDate"],hour["price"],True])
 
             elif hour["price"] < self.price_limit_:
@@ -135,8 +132,15 @@ class HeatingControl(Thread):
 
             counter += 1
 
+        #get current day prices
+        today_prices = []
+        for i in hours:
+            if muunna_aikaleima(i[0]).day == datetime.now().day:
+                today_prices.append(i)
         
-        return hours
+        
+        
+        return today_prices
         
     def __IsChapestHour(self): #private method
         
