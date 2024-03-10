@@ -149,12 +149,11 @@ def Write48hPricesToJSON() -> bool:
 
 if __name__ == "__main__":
 
-    #file = open("data/prices/2023-12-31.json", "r")
-    #json_data = file.read()
-    #file.close()
-    #json_data = json.loads(json_data)
+    file = open("data/prices/2024-03-10.json", "r")
+    json_data = file.read()
+    file.close()
+    json_data = json.loads(json_data)
 
-
-    #print(GetCurrentDayPrices(json_data))
+    print(GetCurrentDayPrices(json_data))
     #print(GetCurrentPrice(json_data))
-    Write48hPricesToJSON()
+    #Write48hPricesToJSON()
