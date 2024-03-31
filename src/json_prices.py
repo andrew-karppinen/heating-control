@@ -3,8 +3,8 @@ from datetime import date,datetime,timedelta
 import requests
 import os
 import json
-
-
+import pytz
+from tzlocal import  get_localzone
 
 
 def muunna_aikaleima(aikaleima_str):
@@ -60,22 +60,22 @@ def GetCurrentDayPrices(jsondata)->list:
     return today_prices
 
 
-def convert_to_finland_time(json_data):
-    def muunna_aika(utc_aika_str):
-        # Käsitellään aikavyöhyke manuaalisesti
-        utc_aika_str = utc_aika_str.replace('Z', '+00:00')
-
+def convert_to_local_time(json_data:dict):
+    def muunna_aika(aika):
         # Muunna merkkijono datetime-objektiksi
-        utc_aika = datetime.strptime(utc_aika_str, '%Y-%m-%dT%H:%M:%S.%f%z')
+        utc_aika = datetime.fromisoformat(aika[:-1])
 
-        # Lisätään kaksi tuntia UTC-aikaan
-        suomen_aika = utc_aika + timedelta(hours=2)
+        #Hanki tietokoneen paikallinen aikavyöhyke
+        paikallinen_aikavyohyke = get_localzone()
 
-        # Palautetaan Suomen aika merkkijonona samassa muodossa kuin alkuperäinen
-        return suomen_aika.replace(microsecond=0).strftime('%Y-%m-%dT%H:%M:%S.000Z')
+        #Muunna UTC-aika paikalliseksi ajaksi
+        paikallinen_aika = utc_aika.replace(tzinfo=pytz.utc).astimezone(paikallinen_aikavyohyke)
+
+        #Palauta paikallinen aika merkkijonona
+        return paikallinen_aika.replace(microsecond=0).strftime('%Y-%m-%dT%H:%M:%S.000Z')
 
     # Kopioidaan syötteenä saatu data, jotta alkuperäistä dataa ei muokata
-    muokattu_data = json_data.copy()
+    muokattu_data = json_data
 
     for price_entry in muokattu_data['prices']:
         price_entry['startDate'] = muunna_aika(price_entry['startDate'])
@@ -107,9 +107,10 @@ def Write48hPricesToJSON() -> bool:
             api_endpoint = f"https://api.porssisahko.net/v1/latest-prices.json"  # api endpoint
             json_data = requests.get(api_endpoint).json()  # get json
 
-            json_data = convert_to_finland_time(json_data) #convert times to Finnish time zone
+            json_data = convert_to_local_time(json_data) #convert times to Finnish time zone
             json_object = json.dumps(json_data, indent=4)  # json to str
-        except:
+        except Exception as a:
+            print(a)
             return False
 
 
@@ -149,11 +150,11 @@ def Write48hPricesToJSON() -> bool:
 
 if __name__ == "__main__":
 
-    file = open("data/prices/2024-03-10.json", "r")
-    json_data = file.read()
-    file.close()
-    json_data = json.loads(json_data)
+    #file = open("data/prices/2024-03-10.json", "r")
+    #json_data = file.read()
+    #file.close()
+    #json_data = json.loads(json_data)
 
-    print(GetCurrentDayPrices(json_data))
+    #print(GetCurrentDayPrices(json_data))
     #print(GetCurrentPrice(json_data))
-    #Write48hPricesToJSON()
+    print(Write48hPricesToJSON())
