@@ -13,6 +13,11 @@ Ohjaa lämmitystä pörssisähkön hinnan mukaan.
 
 > pip install pysimplegui
 
+> pip install pytz
+
+> pip install tzlocal
+
+
 RPi.GPIO kirjastoa ei ole jo asennettu asenna se:
 https://www.raspberrypi-spy.co.uk/2012/05/install-rpi-gpio-python-library/
 
