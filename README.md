@@ -11,7 +11,7 @@ Ohjaa lämmitystä pörssisähkön hinnan mukaan.
 
 ### Asenna python kirjastot:
 
-> pip install pysimplegui
+> pip install tkinter
 
 > pip install pytz
 
