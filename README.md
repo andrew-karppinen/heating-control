@@ -38,4 +38,4 @@ https://pimylifeup.com/raspberry-pi-humidity-sensor-dht22/
 
 
 ### Käynnistä sovellus:
-> python3 intrerface.py
+> python3 interface_tkinter.py
