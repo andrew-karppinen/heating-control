@@ -194,7 +194,8 @@ class HeatingControl(Thread):
             return  False
 
     def TempTracking(self,on:bool): #turn temperature tracing on/off
-        self.temp_tracking_ = on
+        if self.error_in_temp_read_ == False:
+            self.temp_tracking_ = on
 
     def SetThermalLimit(self,limit:int)->None:
         #Set new thermal limit
