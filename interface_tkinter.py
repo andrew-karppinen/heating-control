@@ -116,7 +116,7 @@ class GUI:
         self.aikaikkuna_ = IntVar(value=self.settings_["48h"])
 
 
-        r4 = Radiobutton(checkbutton_frame, text="Käytä 12 tunnin aikaikkunaa", variable=self.aikaikkuna_, value=1, command=self.PaivitaAikaikkuna)
+        r4 = Radiobutton(checkbutton_frame, text="Käytä 23 tunnin aikaikkunaa", variable=self.aikaikkuna_, value=1, command=self.PaivitaAikaikkuna)
 
         r5 = Radiobutton(checkbutton_frame, text="Käytä 48 tunnin aikaikkunaa", variable=self.aikaikkuna_, value=2, command=self.PaivitaAikaikkuna)
 
