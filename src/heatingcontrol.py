@@ -22,7 +22,7 @@ class HeatingControl(Thread):
         Thread.__init__(self)
 
         self.killed_ = False
-        self.running_ = False
+        self.running_ = False #auto
         self.ready_ = False #initialization complete (temperature measurement, picking up electricity prices).
         self.current_temp_ = 0
 
@@ -35,7 +35,7 @@ class HeatingControl(Thread):
         
         self.error_in_internet_connection_ = True
         self.error_in_temp_read_ = True #Temperature measurement error until stated otherwise.
-        self.from_48_hour_ = from_48_hour #Are we using a 12 or 42-hour time window for price comparison?
+        self.from_48_hour_ = from_48_hour #Are we using a 23 or 42-hour time window for price comparison?
 
 
         self.heating_on_ = False
