@@ -97,6 +97,7 @@ class GUI:
 
 
 
+        #ohjauksen radiobuttonit
 
         self.ohjaus_ = IntVar(value=self.settings_["mode"])
 
@@ -111,8 +112,8 @@ class GUI:
         r3.grid(row=6, column=3)
 
 
+        #aikaikkuna radiobuttonit
         self.aikaikkuna_ = IntVar(value=self.settings_["48h"])
-
 
 
         r4 = Radiobutton(checkbutton_frame, text="Käytä 12 tunnin aikaikkunaa", variable=self.aikaikkuna_, value=1, command=self.PaivitaAikaikkuna)
@@ -123,8 +124,9 @@ class GUI:
         r5.grid(row=7, column=2)
 
 
-        self.lampotilan_seuranta_ = BooleanVar(value=self.settings_["temp_tracing"])
+        #käytetäänkö lämpötilan seurantaa nappi
 
+        self.lampotilan_seuranta_ = BooleanVar(value=self.settings_["temp_tracing"])
 
         self.checkbutton_lampotilan_seuranta_ = Checkbutton(checkbutton_frame, text="Käytä lämpötilan seurantaa", variable=self.lampotilan_seuranta_, command=self.PaivitaLampotilanSeuranta)
         self.checkbutton_lampotilan_seuranta_.grid(row=8, column=1)
@@ -133,18 +135,41 @@ class GUI:
         if self.heatingcontrol_.error_in_temp_read_ == True:
             self.lampotilan_seuranta_.set(value=False)
 
-
+        #sulje ohjelma nappi
         sulje = Button(checkbutton_frame,text="Sulje ohjelma",command=self.Close)
         sulje.grid(row =9,column=1)
-
+        
+        #tuntinäkymä nappi
         tuntinakyma = Button(checkbutton_frame,text="Tuntinäkymä",command=self.NaytaTuntinakyma)
         tuntinakyma.grid(row =9,column=2)
+
+        
+        #teksti joka kertoo onko lämmitys päällä
+        self.lammitys_paalla_ = StringVar()
+        self.lammitys_paalla_.set("Lämmitys ei ole tällä hetkellä päällä!")
+        
+        Label(checkbutton_frame, textvariable=self.lammitys_paalla_).grid(row =10,column=1)
+
+    
+        #teksti joka näyttää nykyisen sähkönhinnan
+        self.hinta_nyt_ = StringVar()
+        self.hinta_nyt_.set("Sähkön hinta nyt: 0.0 snt")
+        
+        Label(checkbutton_frame, textvariable=self.hinta_nyt_).grid(row =10,column=2)
+
+
+        #teksti joka kertoo onko sähkön hintatiedot haettu onnistuneesti
+        self.hinnat_haettu_ = StringVar()
+        self.hinnat_haettu_.set("Hintatiedot haettu onnistuneesti!")
+        
+        Label(checkbutton_frame, textvariable=self.hinnat_haettu_).grid(row =11,column=1)
 
         # Asetetaan oletusvalinnat
         self.PaivitaOhjaus()
 
         self.PaivitaAikaikkuna()
 
+        self.PaivitaTekstit() #päivitetään tekstit
 
 
 
@@ -166,6 +191,30 @@ class GUI:
     def NaytaTuntinakyma(self):
         hours = self.heatingcontrol_.Hours()
         ViewHours(hours)
+
+
+    def PaivitaTekstit(self):
+        '''
+        Päivitetään tekstit
+        '''
+        
+        if self.heatingcontrol_.heating_on_ == True:
+            self.lammitys_paalla_.set("Lämmitys on tällä hetkellä päällä!")
+        else:
+            self.lammitys_paalla_.set("Lämmitys ei ole tällä hetkellä päällä!")
+
+        hinta = self.heatingcontrol_.current_price_ #hinta teksti
+        self.hinta_nyt_.set(f"Sähkön hinta nyt: {hinta} snt")
+
+        if self.heatingcontrol_.error_in_internet_connection_ == True:
+            self.hinnat_haettu_.set("Ongelma hintojen haussa, toimiiko internetyhteys?")  
+        else:
+            self.hinnat_haettu_.set("Hintatiedot haettu onnistuneesti!")
+
+
+
+        window.after(1000, self.PaivitaTekstit) #päivitetään uudestaan sekunnin päästä
+
 
 
     def PaivitaLampotilanSeuranta(self):
@@ -216,6 +265,8 @@ class GUI:
         value = self.hintaraja_.get()
         self.heatingcontrol_.SetPriceLimit(value)
         SaveSettings(self.heatingcontrol_) #save settings to json file
+        self.lammitys_paalla_.set("a, World!")
+
 
     def PaivitaMaxLampotila(self, *args):
         value = self.max_lampotila_.get()
