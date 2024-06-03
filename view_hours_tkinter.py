@@ -7,6 +7,7 @@ def ViewHours(data):
     root.title("Tuntinäkymä")
     root.geometry("640x480")
 
+
     canvas = Canvas(root, width=640, height=410)  # Reduced height to leave space for the button
     canvas.grid(row=0, column=0, padx=10, pady=1)
 
@@ -55,7 +56,7 @@ def ViewHours(data):
 
                 draw_bar(x, y, bar_width, bar_height, get_color(price))
                 canvas.create_text(x + bar_width // 2, y + 10, text=hour, anchor=N)
-                canvas.create_text(x + bar_width // 2, y + bar_height - 10, text=f"{price:.2f}", anchor=S)
+                canvas.create_text(x + bar_width // 2, y + bar_height - 10, text=f"{price:.0f}", anchor=S)
                 canvas.create_text(x + bar_width // 2, y + 30, text=status, anchor=N)
                 if str(hour) == current_hour:
                     canvas.create_line(x + bar_width // 2, y, x + bar_width // 2, y + bar_height, fill="blue", width=2)
@@ -71,6 +72,9 @@ def ViewHours(data):
     # Add close button
     close_button = Button(root, text="Sulje ikkuna", command=root.destroy,font=("Arial", 20))
     close_button.grid(row=1, column=0, pady=(0, 0))
+
+
+    root.after(10000, root.destroy) #automatically destroys the window in 10 seconds
 
     root.mainloop()
 
