@@ -1,5 +1,7 @@
 from tkinter import *
 
+from tkinter import IntVar, Frame
+from tkinter import ttk
 from src.heatingcontrol import *
 from view_hours_tkinter import ViewHours
 
@@ -7,7 +9,7 @@ window = Tk()
 
 window.title("Lämmityksenohjaus") #nimetään ikkuna
 
-window.geometry('700x500') #luodaan ikkuna
+window.geometry('640x480') #luodaan ikkuna
 
 
 def SaveSettings(heatingcontrol:object):
@@ -51,7 +53,6 @@ def SaveSettings(heatingcontrol:object):
 class GUI:
     def __init__(self): #constructor
 
-
         #load settings
         f = open('data/settings.json')
         self.settings_ = json.load(f)['settings']
@@ -63,35 +64,83 @@ class GUI:
 
         self.LoadingScreen()
 
+        #määritellään joitain muuttujia:
+        self.font_ = "Arial" #käytettävä fontti
+        self.fontti_koko_ = 16 #fontin koko
+
+        self.max_hintaraja_ = 50 #snt
 
 
+        #ikkunaan tulevat jutut:
 
-        #tuntimaara:
+        #Tuntimäärä
+        tuntimaara_frame = Frame(window)
+        tuntimaara_frame.pack(anchor=W, padx=10, pady=(20, 0))
+        tuntimaara_label = Label(tuntimaara_frame, text="Tuntimäärä:              ",font=(self.font_, self.fontti_koko_)) #label
+        tuntimaara_label.pack(side=LEFT)
         self.tuntimaara_ = IntVar(value=self.settings_["hour_count"])
-        self.tuntimaara_.trace("w", self.PaivitaTuntimaara)  # Lisää jäljitys, joka kutsuu on_slider_change-metodia aina kun arvo muuttuu
-        Scale(window, variable=self.tuntimaara_, from_=1, to=47, orient=HORIZONTAL, length=300,label="Tuntimäärä: ").pack(anchor=CENTER)# Keskitä liukusäädin vaakasuunnassa
+
+        lisaa_tuntimaara = Button(tuntimaara_frame, text="       -       ",font=(self.font_, self.fontti_koko_),command=self.PienennaTuntimaara) #vähennä button
+        lisaa_tuntimaara.pack(side=LEFT)
+        self.tuntimaara_ilmaisin_label_ = Label(tuntimaara_frame, text=str(self.tuntimaara_.get()),font=(self.font_, self.fontti_koko_)) #tuntimäärä ilmaisn tekssti
+        self.tuntimaara_ilmaisin_label_.pack(side=LEFT)
+        vahenna_tuntimaara = Button(tuntimaara_frame, text="       +       ",font=(self.font_, self.fontti_koko_),command=self.LisaaTuntimaara) #kasvata button
+        vahenna_tuntimaara.pack(side=LEFT)
 
 
 
-
-        #hintaraja:
+        #hintaraja
+        hintaraja_frame  = Frame(window)
+        hintaraja_frame .pack(anchor=W, padx=10, pady=(20, 0))
+        hintaraja_label = Label(hintaraja_frame, text="Hintaraja:                  ",font=(self.font_, self.fontti_koko_)) #label
+        hintaraja_label.pack(side=LEFT)
         self.hintaraja_ = IntVar(value=self.settings_["price_limit"])
-        self.hintaraja_.trace("w", self.PaivitaHintaRaja)  # Lisää jäljitys, joka kutsuu on_slider_change-metodia aina kun arvo muuttuu
-        Scale(window, variable=self.hintaraja_ , from_=0, to=50, orient=HORIZONTAL, length=300,label="Kytke lämmitys päälle jos hinta alle (snt): ").pack(anchor=CENTER)# Keskitä liukusäädin vaakasuunnassa
 
-        #maksimi lämpötila
-        self.max_lampotila_ = IntVar(value=self.settings_["max_temperature"])
-        self.max_lampotila_.trace("w", self.PaivitaMaxLampotila)  # Lisää jäljitys, joka kutsuu on_slider_change-metodia aina kun arvo muuttuu
-        self.s3 = Scale(window, variable=self.max_lampotila_ , from_=0, to=40, orient=HORIZONTAL, length=300,label="Älä käytä lämmitystä jos lämpötila yli: ").pack(anchor=CENTER)# Keskitä liukusäädin vaakasuunnassa
-
-        #minimilämpötila
-        self.lampotila_raja_ = IntVar(value=self.settings_["thermal_limit"])
-        self.lampotila_raja_.trace("w", self.PaivitaLampotilaRaja)  # Lisää jäljitys, joka kutsuu on_slider_change-metodia aina kun arvo muuttuu
-        Scale(window, variable=self.lampotila_raja_, from_=0, to=40, orient=HORIZONTAL, length=300, label="Kytke lämmitys päälle jos lämpötila alle: ").pack(anchor=CENTER)# Keskitä liukusäädin vaakasuunnassa
+        lisaa_hintaraja = Button(hintaraja_frame, text="       -       ",font=(self.font_, self.fontti_koko_),command=self.PienennaHintaRaja) #vähennä button
+        lisaa_hintaraja.pack(side=LEFT)
+        self.hintaraja_ilmaisin_label_ = Label(hintaraja_frame, text=str(self.hintaraja_.get()),font=(self.font_, self.fontti_koko_)) #hintaraja ilmaisn tekssti
+        self.hintaraja_ilmaisin_label_.pack(side=LEFT)
+        vahenna_hintaraja = Button(hintaraja_frame, text="       +       ",font=(self.font_, self.fontti_koko_),command=self.LisaaHintaRaja) #kasvata button
+        vahenna_hintaraja.pack(side=LEFT)
 
 
 
-        # Frame radiobutton-elementeille
+
+        #maksimilämpötila
+        max_lampotila_frame  = Frame(window)
+        max_lampotila_frame .pack(anchor=W, padx=10, pady=(20, 0))
+        max_lampotila_label = Label(max_lampotila_frame, text="Maksimilämpötila:    ",font=(self.font_, self.fontti_koko_)) #label
+        max_lampotila_label.pack(side=LEFT)
+        self.max_lampotila_  = IntVar(value=self.settings_["max_temperature"])
+
+        lisaa_max_lampotila = Button(max_lampotila_frame, text="       -       ",font=(self.font_, self.fontti_koko_),command=self.PienennaMaxLampotila) #vähennä button
+        lisaa_max_lampotila.pack(side=LEFT)
+        self.max_lampotila_ilmaisin_label_ = Label(max_lampotila_frame, text=str(self.max_lampotila_.get()),font=(self.font_, self.fontti_koko_)) #hintaraja ilmaisn tekssti
+        self.max_lampotila_ilmaisin_label_.pack(side=LEFT)
+        vahenna_max_lampotila = Button(max_lampotila_frame, text="       +       ",font=(self.font_, self.fontti_koko_),command=self.LisaMaxLampotila) #kasvata button
+        vahenna_max_lampotila.pack(side=LEFT)
+
+
+
+        #minimi lämpötila
+        lampotila_raja_frame  = Frame(window)
+        lampotila_raja_frame .pack(anchor=W, padx=10, pady=(20, 0))
+        min_lampotila_label = Label(lampotila_raja_frame, text="Minimilämpötila:       ",font=(self.font_, self.fontti_koko_)) #label
+        min_lampotila_label.pack(side=LEFT)
+        self.min_lampotila_  = IntVar(value=self.settings_["thermal_limit"])
+
+        lisaa_lampotilarajaa = Button(lampotila_raja_frame, text="       -       ", font=(self.font_, self.fontti_koko_), command=self.PienennaLampotilarajaa) #vähennä button
+        lisaa_lampotilarajaa.pack(side=LEFT)
+        self.lampotilaraja_ilmaisin_label_ = Label(lampotila_raja_frame, text=str(self.min_lampotila_.get()), font=(self.font_, self.fontti_koko_)) #hintaraja ilmaisn tekssti
+        self.lampotilaraja_ilmaisin_label_.pack(side=LEFT)
+        vahenna_min_lampotila = Button(lampotila_raja_frame, text="       +       ", font=(self.font_, self.fontti_koko_), command=self.KasvataLampotilarajaa) #kasvata button
+        vahenna_min_lampotila.pack(side=LEFT)
+
+
+
+
+
+        #Frame radiobutton-elementeille
         checkbutton_frame = Frame(window)
         checkbutton_frame.pack()
 
@@ -101,46 +150,86 @@ class GUI:
 
         self.ohjaus_ = IntVar(value=self.settings_["mode"])
 
-        r1 = Radiobutton(checkbutton_frame, text="Lämmitys pois", variable=self.ohjaus_, value=1, command=self.PaivitaOhjaus)
+        ohjaus_frame = Frame(checkbutton_frame)
+        ohjaus_frame.grid(row=6, column=1, columnspan=3)  # Yhdistetään kolme saraketta yhdeksi
 
-        r2 = Radiobutton(checkbutton_frame, text="Automaattinen ohjaus", variable=self.ohjaus_, value=2, command=self.PaivitaOhjaus)
+        ohjaus_texts = ["Lämmitys pois", "Automaattinen ohjaus", "Lämmitys päälle"]
+        ohjaus_values = [1, 2, 3]
+        ohjaus_commands = [self.PaivitaOhjaus] * len(ohjaus_texts)
 
-        r3 = Radiobutton(checkbutton_frame, text="Lämmitys päälle", variable=self.ohjaus_, value=3, command=self.PaivitaOhjaus)
+        style = ttk.Style()
 
-        r1.grid(row=6, column=1)
-        r2.grid(row=6, column=2)
-        r3.grid(row=6, column=3)
+        # Tyylien määrittely
+        style.configure("TRadiobutton", font=(self.font_, self.fontti_koko_))
+        style.map("TRadiobutton",
+                  background=[('selected', 'lightblue'), ('!selected', 'white')],
+                  foreground=[('selected', 'black'), ('!selected', 'gray')],
+                  relief=[('selected', 'sunken'), ('!selected', 'raised')])
 
+        for text, value, command in zip(ohjaus_texts, ohjaus_values, ohjaus_commands):
+            r = ttk.Radiobutton(
+                ohjaus_frame,
+                text=text,
+                variable=self.ohjaus_,
+                value=value,
+                command=command,
+                style="TRadiobutton"
+            )
+            r.pack(side=LEFT, padx=5, pady=5)  # Aseta "padx" ja "pady" lisätäksesi tilaa
 
-        #aikaikkuna radiobuttonit
+        # aikaikkuna-radiobuttonit
+
         self.aikaikkuna_ = IntVar(value=self.settings_["48h"])
 
+        aikaikkuna_frame = Frame(checkbutton_frame)
+        aikaikkuna_frame.grid(row=7, column=1, columnspan=2)
 
-        r4 = Radiobutton(checkbutton_frame, text="Käytä 23 tunnin aikaikkunaa", variable=self.aikaikkuna_, value=1, command=self.PaivitaAikaikkuna)
+        aikaikkuna_texts = ["Käytä 23 tunnin aikaikkunaa", "Käytä 48 tunnin aikaikkunaa"]
+        aikaikkuna_values = [1, 2]
+        aikaikkuna_commands = [self.PaivitaAikaikkuna] * len(aikaikkuna_texts)
 
-        r5 = Radiobutton(checkbutton_frame, text="Käytä 48 tunnin aikaikkunaa", variable=self.aikaikkuna_, value=2, command=self.PaivitaAikaikkuna)
 
-        r4.grid(row=7, column=1)
-        r5.grid(row=7, column=2)
+        for text, value, command in zip(aikaikkuna_texts, aikaikkuna_values, aikaikkuna_commands):
+            r = ttk.Radiobutton(
+                aikaikkuna_frame,
+                text=text,
+                variable=self.aikaikkuna_,
+                value=value,
+                command=command,
+                style="TRadiobutton"
+            )
+            r.pack(side=LEFT, padx=5, pady=5)
+
 
 
         #käytetäänkö lämpötilan seurantaa nappi
 
         self.lampotilan_seuranta_ = BooleanVar(value=self.settings_["temp_tracing"])
+        style.configure("TCheckbutton", font=(self.font_, self.fontti_koko_), padding=10)
+        style.map("TCheckbutton",
+                  background=[('selected', 'lightblue'), ('!selected', 'white')],
+                  foreground=[('selected', 'black'), ('!selected', 'gray')],
+                  relief=[('selected', 'sunken'), ('!selected', 'raised')])
 
-        self.checkbutton_lampotilan_seuranta_ = Checkbutton(checkbutton_frame, text="Käytä lämpötilan seurantaa", variable=self.lampotilan_seuranta_, command=self.PaivitaLampotilanSeuranta)
-        self.checkbutton_lampotilan_seuranta_.grid(row=8, column=1)
+        self.checkbutton_lampotilan_seuranta_ = ttk.Checkbutton(
+            checkbutton_frame,
+            text="Käytä lämpötilan seurantaa",
+            variable=self.lampotilan_seuranta_,
+            command=self.PaivitaLampotilanSeuranta,
+            style="TCheckbutton"
+        )
+        self.checkbutton_lampotilan_seuranta_.grid(row=8, column=1, padx=5, pady=10)
 
 
         if self.heatingcontrol_.error_in_temp_read_ == True:
             self.lampotilan_seuranta_.set(value=False)
 
         #sulje ohjelma nappi
-        sulje = Button(checkbutton_frame,text="Sulje ohjelma",command=self.Close)
+        sulje = Button(checkbutton_frame,text="Sulje ohjelma",command=self.Close,font=(self.font_, self.fontti_koko_))
         sulje.grid(row =9,column=1)
         
         #tuntinäkymä nappi
-        tuntinakyma = Button(checkbutton_frame,text="Tuntinäkymä",command=self.NaytaTuntinakyma)
+        tuntinakyma = Button(checkbutton_frame,text="Tuntinäkymä",command=self.NaytaTuntinakyma,font=(self.font_, self.fontti_koko_))
         tuntinakyma.grid(row =9,column=2)
 
         
@@ -148,21 +237,21 @@ class GUI:
         self.lammitys_paalla_ = StringVar()
         self.lammitys_paalla_.set("Lämmitys ei ole tällä hetkellä päällä!")
         
-        Label(checkbutton_frame, textvariable=self.lammitys_paalla_).grid(row =10,column=1)
+        Label(checkbutton_frame, textvariable=self.lammitys_paalla_,font=(self.font_, self.fontti_koko_)).grid(row =10,column=1)
 
     
         #teksti joka näyttää nykyisen sähkönhinnan
         self.hinta_nyt_ = StringVar()
         self.hinta_nyt_.set("Sähkön hinta nyt: 0.0 snt")
         
-        Label(checkbutton_frame, textvariable=self.hinta_nyt_).grid(row =10,column=2)
+        Label(checkbutton_frame, textvariable=self.hinta_nyt_,font=(self.font_, self.fontti_koko_)).grid(row =10,column=2,)
 
 
         #teksti joka kertoo onko sähkön hintatiedot haettu onnistuneesti
         self.hinnat_haettu_ = StringVar()
-        self.hinnat_haettu_.set("Hintatiedot haettu onnistuneesti!")
+        self.hinnat_haettu_.set("Hintatiedot haettu onnistuneesti!",)
         
-        Label(checkbutton_frame, textvariable=self.hinnat_haettu_).grid(row =11,column=1)
+        Label(checkbutton_frame, textvariable=self.hinnat_haettu_,font=(self.font_, self.fontti_koko_)).grid(row =11,column=1)
 
         # Asetetaan oletusvalinnat
         self.PaivitaOhjaus()
@@ -195,7 +284,7 @@ class GUI:
 
     def PaivitaTekstit(self):
         '''
-        Päivitetään tekstit
+        Päivitetään info tekstit
         '''
         
         if self.heatingcontrol_.heating_on_ == True:
@@ -219,7 +308,6 @@ class GUI:
 
     def PaivitaLampotilanSeuranta(self):
         #päivitä lämpötilan seuranta päälle/pois päältä
-
         if self.heatingcontrol_.error_in_temp_read_ == True:
             self.lampotilan_seuranta_.set(value=False)
             return
@@ -229,19 +317,26 @@ class GUI:
         SaveSettings(self.heatingcontrol_) #save settings to json file
 
     def PaivitaAikaikkuna(self):
-        if self.aikaikkuna_.get() == 1:
+        if self.aikaikkuna_.get() == 1: #23 tunnin aikaikkuna
             self.heatingcontrol_.from_48_hour_ = False
             if self.tuntimaara_.get() > 23: #jos tuntimäärä yli 23 aseta se 23
                 self.tuntimaara_.set(23)
-                value = 23
-            
-            
-        elif self.aikaikkuna_.get() == 2:
+
+                self.heatingcontrol_.SetHourCount(self.tuntimaara_.get()) #päivitä lämmityksenohjaus 23 tuntiin
+                SaveSettings(self.heatingcontrol_)  # save settings to json file
+
+                self.tuntimaara_ilmaisin_label_.config(text=str(self.tuntimaara_.get()))  # Päivitä Label-widgetin teksti
+
+
+
+
+
+        elif self.aikaikkuna_.get() == 2: #48 tunnin aikaikkuna
             self.heatingcontrol_.from_48_hour_ = True
         SaveSettings(self.heatingcontrol_) #save settings to json file
 
     def PaivitaOhjaus(self):
-        print(self.ohjaus_.get())
+
         if self.ohjaus_.get() == 1:
             self.heatingcontrol_.SetManuallyOff()
         elif self.ohjaus_.get() == 2:
@@ -250,28 +345,193 @@ class GUI:
             self.heatingcontrol_.SetManuallyOn()
         SaveSettings(self.heatingcontrol_) #save settings to json file
 
-    def PaivitaTuntimaara(self, *args):
+
+    def LisaaTuntimaara(self):
+        '''
+        Lisää tuntimäärää, päivittää tekstit käyttöliittymään,
+        tekee muutokset lämityksenohajukseen,
+        tallentaa asetukset json tiedostoon
+        '''
+
         value = self.tuntimaara_.get()
 
-        if self.heatingcontrol_.from_48_hour_ == False:
-            if value > 23:
-                self.tuntimaara_.set(23)
-                value = 23
+        value += 1 #lisätään arvoa
 
-        self.heatingcontrol_.SetChapestHour(value)
+
+        if self.heatingcontrol_.from_48_hour_ == False: #käytössä 23h
+            if value >= 23: #tuntimäärä jo niin iso kuin mahdollista
+                return  #ei tehdä mitään
+        else: #käytössä 48h
+            if value >= 47: #tuntimäärä jo niin iso kuin mahdollista
+                return #ei tehdä mitään
+
+
+
+        self.tuntimaara_.set(value)
+
+        #tehään muutokset lämmitykseonhajukseen:
+        self.heatingcontrol_.SetHourCount(value)
         SaveSettings(self.heatingcontrol_) #save settings to json file
 
-    def PaivitaHintaRaja(self, *args):
+        self.tuntimaara_ilmaisin_label_.config(text=str(value))  # Päivitä Label-widgetin teksti
+
+
+    def PienennaTuntimaara(self):
+        '''
+        Vähentää tuntimäärää, päivittää tekstit käyttöliittymään,
+        tekee muutokset lämityksenohajukseen,
+        tallentaa asetukset json tiedostoon
+        '''
+
+        value = self.tuntimaara_.get()
+
+        if value == 1: #jos jo niin pieni kuin mahdollista, ei tehdä mitään
+            return
+
+        value -= 1 #pienennetään arvoa
+
+        self.tuntimaara_.set(value)
+
+        #tehään muutokset lämmitykseonhajukseen:
+        self.heatingcontrol_.SetHourCount(value)
+        SaveSettings(self.heatingcontrol_) #save settings to json file
+
+        self.tuntimaara_ilmaisin_label_.config(text=str(value))  # Päivitä Label-widgetin teksti
+
+
+    def LisaaHintaRaja(self):
+        '''
+        Lisää hintarajaa
+        päivittää käyttöliittymän, tekee muutokset lämmityksenohajaukseen,
+        tallentaa asetukset json tiedostoon
+        '''
+
         value = self.hintaraja_.get()
+
+        if value >= self.max_hintaraja_: #hintaraja on jo niin korkea kuin mahdollista
+            return  #ei tehdä mitään
+
+        value += 1
+        self.hintaraja_.set(value)
+
+        self.hintaraja_ilmaisin_label_.config(text=str(value))  # Päivitä Label-widgetin teksti
+
+
         self.heatingcontrol_.SetPriceLimit(value)
-        SaveSettings(self.heatingcontrol_) #save settings to json file
-        self.lammitys_paalla_.set("a, World!")
+        SaveSettings(self.heatingcontrol_)  # save settings to json file
+
+        self.hintaraja_ilmaisin_label_.config(text=str(value))  # Päivitä Label-widgetin teksti
 
 
-    def PaivitaMaxLampotila(self, *args):
+
+
+    def PienennaHintaRaja(self):
+        '''
+        Pienentää hintarajaa
+        päivittää käyttöliittymän, tekee muutokset lämmityksenohajaukseen,
+        tallentaa asetukset json tiedostoon
+        '''
+
+        value = self.hintaraja_.get()
+
+        if value <= 0:  # hintaraja on jo niin matala kuin mahdollista
+            return  # ei tehdä mitään
+
+        value -= 1
+        self.hintaraja_.set(value)
+
+        self.hintaraja_ilmaisin_label_.config(text=str(value))  # Päivitä Label-widgetin teksti
+
+        self.heatingcontrol_.SetPriceLimit(value)
+        SaveSettings(self.heatingcontrol_)  # save settings to json file
+
+        self.hintaraja_ilmaisin_label_.config(text=str(value))  # Päivitä Label-widgetin teksti
+
+
+
+    def LisaMaxLampotila(self):
+        '''
+        kasvattaa maksimilämpötilaa
+        päivittää käyttöliittymän, tekee muutokset lämmityksenohajaukseen,
+        tallentaa asetukset json tiedostoon
+        '''
+
         value = self.max_lampotila_.get()
+
+        if value >= 50: #jos maxlämpötila on jo niin suuri kuin mahdollista
+            return #ei tehdä mitään
+
+        value += 1
+        self.max_lampotila_.set(value) #päivitetään käyttöliittymän maksimilämpötilamuuttuja
+
         self.heatingcontrol_.SetMaxTemp(value)
         SaveSettings(self.heatingcontrol_) #save settings to json file
+
+        self.max_lampotila_ilmaisin_label_.config(text=str(value))  # Päivitä Label-widgetin teksti
+
+
+    def PienennaMaxLampotila(self):
+        '''
+        Pienentää maksimilämpötilaa
+        päivittää käyttöliittymän, tekee muutokset lämmityksenohajaukseen,
+        tallentaa asetukset json tiedostoon
+        '''
+
+        value = self.max_lampotila_.get()
+
+
+        if value <=0:  # jos maxlämpötila on jo niin pieni kuin mahdollista
+            return  # ei tehdä mitään
+
+        value -= 1
+        self.max_lampotila_.set(value) #päivitetään käyttöliittymän maksimilämpötilamuuttuja
+
+        self.heatingcontrol_.SetMaxTemp(value)
+        SaveSettings(self.heatingcontrol_)  # save settings to json file
+
+        self.max_lampotila_ilmaisin_label_.config(text=str(value))  # Päivitä Label-widgetin teksti
+
+
+    def PienennaLampotilarajaa(self):
+        '''
+        Pienennetään lämpötilaraja
+        päivittää käyttöliittymän, tekee muutokset lämmityksenohajaukseen,
+        tallentaa asetukset json tiedostoon
+        '''
+
+        value = self.min_lampotila_.get()
+
+        if value <= 0: #arvo jo niin pieni kuin mahdollista
+            return  #ei tehdä mitään
+
+        value -= 1
+        self.min_lampotila_.set(value)
+        self.heatingcontrol_.SetThermalLimit(value) #tehdään muutokset lämmityksenohjaukseen
+
+        SaveSettings(self.heatingcontrol_)  # save settings to json file
+        self.lampotilaraja_ilmaisin_label_.config(text=str(value))  # Päivitä Label-widgetin teksti
+
+
+    def KasvataLampotilarajaa(self):
+        '''
+        kasvatetaan lämpötilaraja
+        päivittää käyttöliittymän, tekee muutokset lämmityksenohajaukseen,
+        tallentaa asetukset json tiedostoon
+        '''
+
+
+        value = self.min_lampotila_.get()
+
+        if value > 50: #arvo jo niin suuri kuin mahdollista
+            return  #ei tehdä mitään
+
+        value += 1
+        self.min_lampotila_.set(value)
+        self.heatingcontrol_.SetThermalLimit(value) #tehdään muutokset lämmityksenohjaukseen
+
+        SaveSettings(self.heatingcontrol_)  # save settings to json file
+        self.lampotilaraja_ilmaisin_label_.config(text=str(value))  # Päivitä Label-widgetin teksti
+
 
 
     def PaivitaLampotilaRaja(self, *args):
