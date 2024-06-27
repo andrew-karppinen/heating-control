@@ -4,7 +4,7 @@ from tkinter import IntVar, Frame
 from tkinter import ttk
 from src.heatingcontrol import *
 from view_hours_tkinter import ViewHours
-
+import json
 window = Tk()
 
 window.title("Lämmityksenohjaus") #nimetään ikkuna
@@ -28,6 +28,11 @@ def GetConfigDirectory():
 
     if system == "Linux":  # linux
         path = os.path.expanduser('~') + "/.config/heating-control"
+
+        # Create the directory if it doesn't exist
+        if not os.path.exists(path):
+            os.makedirs(path)
+
         return path
 
 
@@ -71,11 +76,20 @@ def SaveSettings(heatingcontrol:object):
 class GUI:
     def __init__(self): #constructor
 
-        #load settings
-        f = open(f'{GetConfigDirectory()}/settings.json')
-        self.settings_ = json.load(f)['settings']
-        f.close()
 
+        self.default_settings_ = {"settings": {"thermal_limit": 16, "48h": 1, "hour_count": 23, "mode": 1, "max_temperature": 0, "price_limit": 5, "temp_tracing": False}}
+
+        #load settings
+        try:
+            f = open(f'{GetConfigDirectory()}/settings.json')
+            self.settings_ = json.load(f)['settings']
+            f.close()
+        except: #settings file is no exist, create it and save default settings
+            f = open(f'{GetConfigDirectory()}/settings.json','w')
+            f.write(json.dumps(self.default_settings_))
+            f.close()
+
+            self.settings_ = self.default_settings_
 
         self.heatingcontrol_ = HeatingControl(self.settings_['48h'],self.settings_['hour_count'],self.settings_["price_limit"],self.settings_['thermal_limit']) #luodaan lämmityksenohjaus olio ja threadi
         self.heatingcontrol_.start() #käynnistetään lämmityksenohjaus threadi
