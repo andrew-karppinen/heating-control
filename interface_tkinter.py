@@ -11,6 +11,25 @@ window.title("Lämmityksenohjaus") #nimetään ikkuna
 
 window.geometry('640x480') #luodaan ikkuna
 
+import os
+import platform
+
+
+def GetConfigDirectory():
+    '''
+    get this path in linux:
+    home/.config/heating-control
+
+    get this path in windows:
+    appdata/Roaming
+    '''
+
+    system = platform.system()  # get operating system
+
+    if system == "Linux":  # linux
+        path = os.path.expanduser('~') + "/.config/heating-control"
+        return path
+
 
 def SaveSettings(heatingcontrol:object):
     '''
@@ -26,7 +45,6 @@ def SaveSettings(heatingcontrol:object):
         mode = 2
         
     #mode1 = off, mode2 = auto, mode3 = on
-    
 
     if heatingcontrol.from_48_hour_==True:
         time_window = 2
@@ -47,14 +65,14 @@ def SaveSettings(heatingcontrol:object):
 
     json_object = json.dumps(json_object) #dict to json standard
 
-    with open(f"data/settings.json", "w") as outfile:
+    with open(f"{GetConfigDirectory()}/settings.json", "w") as outfile:
         outfile.write(json_object)
 
 class GUI:
     def __init__(self): #constructor
 
         #load settings
-        f = open('data/settings.json')
+        f = open(f'{GetConfigDirectory()}/settings.json')
         self.settings_ = json.load(f)['settings']
         f.close()
 
@@ -71,6 +89,9 @@ class GUI:
         self.max_hintaraja_ = 50 #snt
 
 
+        self.nappi_painettu_ = False
+
+
         #ikkunaan tulevat jutut:
 
         #Tuntimäärä
@@ -80,14 +101,15 @@ class GUI:
         tuntimaara_label.pack(side=LEFT)
         self.tuntimaara_ = IntVar(value=self.settings_["hour_count"])
 
-        lisaa_tuntimaara = Button(tuntimaara_frame, text="       -       ",font=(self.font_, self.fontti_koko_),command=self.PienennaTuntimaara) #vähennä button
+        lisaa_tuntimaara = Button(tuntimaara_frame, text="         -      ",font=(self.font_, self.fontti_koko_)) #vähennä button
         lisaa_tuntimaara.pack(side=LEFT)
         self.tuntimaara_ilmaisin_label_ = Label(tuntimaara_frame, text=str(self.tuntimaara_.get()),font=(self.font_, self.fontti_koko_)) #tuntimäärä ilmaisn tekssti
         self.tuntimaara_ilmaisin_label_.pack(side=LEFT)
-        vahenna_tuntimaara = Button(tuntimaara_frame, text="       +       ",font=(self.font_, self.fontti_koko_),command=self.LisaaTuntimaara) #kasvata button
+        vahenna_tuntimaara = Button(tuntimaara_frame, text="            +         ",font=(self.font_, self.fontti_koko_),command=self.LisaaTuntimaara) #kasvata button
         vahenna_tuntimaara.pack(side=LEFT)
 
-
+        lisaa_tuntimaara.bind("<ButtonPress-1>", self.NappiPohjaan)
+        lisaa_tuntimaara.bind("<ButtonRelease-1>", self.NappiYlos)
 
         #hintaraja
         hintaraja_frame  = Frame(window)
@@ -96,11 +118,11 @@ class GUI:
         hintaraja_label.pack(side=LEFT)
         self.hintaraja_ = IntVar(value=self.settings_["price_limit"])
 
-        lisaa_hintaraja = Button(hintaraja_frame, text="       -       ",font=(self.font_, self.fontti_koko_),command=self.PienennaHintaRaja) #vähennä button
+        lisaa_hintaraja = Button(hintaraja_frame, text="         -        ",font=(self.font_, self.fontti_koko_),command=self.PienennaHintaRaja) #vähennä button
         lisaa_hintaraja.pack(side=LEFT)
         self.hintaraja_ilmaisin_label_ = Label(hintaraja_frame, text=str(self.hintaraja_.get()),font=(self.font_, self.fontti_koko_)) #hintaraja ilmaisn tekssti
         self.hintaraja_ilmaisin_label_.pack(side=LEFT)
-        vahenna_hintaraja = Button(hintaraja_frame, text="       +       ",font=(self.font_, self.fontti_koko_),command=self.LisaaHintaRaja) #kasvata button
+        vahenna_hintaraja = Button(hintaraja_frame, text="          +         ",font=(self.font_, self.fontti_koko_),command=self.LisaaHintaRaja) #kasvata button
         vahenna_hintaraja.pack(side=LEFT)
 
 
@@ -113,11 +135,11 @@ class GUI:
         max_lampotila_label.pack(side=LEFT)
         self.max_lampotila_  = IntVar(value=self.settings_["max_temperature"])
 
-        lisaa_max_lampotila = Button(max_lampotila_frame, text="       -       ",font=(self.font_, self.fontti_koko_),command=self.PienennaMaxLampotila) #vähennä button
+        lisaa_max_lampotila = Button(max_lampotila_frame, text="         -        ",font=(self.font_, self.fontti_koko_),command=self.PienennaMaxLampotila) #vähennä button
         lisaa_max_lampotila.pack(side=LEFT)
         self.max_lampotila_ilmaisin_label_ = Label(max_lampotila_frame, text=str(self.max_lampotila_.get()),font=(self.font_, self.fontti_koko_)) #hintaraja ilmaisn tekssti
         self.max_lampotila_ilmaisin_label_.pack(side=LEFT)
-        vahenna_max_lampotila = Button(max_lampotila_frame, text="       +       ",font=(self.font_, self.fontti_koko_),command=self.LisaMaxLampotila) #kasvata button
+        vahenna_max_lampotila = Button(max_lampotila_frame, text="          +         ",font=(self.font_, self.fontti_koko_),command=self.LisaMaxLampotila) #kasvata button
         vahenna_max_lampotila.pack(side=LEFT)
 
 
@@ -129,13 +151,12 @@ class GUI:
         min_lampotila_label.pack(side=LEFT)
         self.min_lampotila_  = IntVar(value=self.settings_["thermal_limit"])
 
-        lisaa_lampotilarajaa = Button(lampotila_raja_frame, text="       -       ", font=(self.font_, self.fontti_koko_), command=self.PienennaLampotilarajaa) #vähennä button
+        lisaa_lampotilarajaa = Button(lampotila_raja_frame, text="         -        ", font=(self.font_, self.fontti_koko_), command=self.PienennaLampotilarajaa) #vähennä button
         lisaa_lampotilarajaa.pack(side=LEFT)
         self.lampotilaraja_ilmaisin_label_ = Label(lampotila_raja_frame, text=str(self.min_lampotila_.get()), font=(self.font_, self.fontti_koko_)) #hintaraja ilmaisn tekssti
         self.lampotilaraja_ilmaisin_label_.pack(side=LEFT)
-        vahenna_min_lampotila = Button(lampotila_raja_frame, text="       +       ", font=(self.font_, self.fontti_koko_), command=self.KasvataLampotilarajaa) #kasvata button
+        vahenna_min_lampotila = Button(lampotila_raja_frame, text="        +         ", font=(self.font_, self.fontti_koko_), command=self.KasvataLampotilarajaa) #kasvata button
         vahenna_min_lampotila.pack(side=LEFT)
-
 
 
 
@@ -266,6 +287,13 @@ class GUI:
 
         window.mainloop() #start gui
 
+
+
+
+
+
+
+
     def Close(self):
         self.heatingcontrol_.Stop() #close heating control
         window.destroy() #close gui
@@ -279,6 +307,9 @@ class GUI:
 
     def NaytaTuntinakyma(self):
         hours = self.heatingcontrol_.Hours()
+        if hours == None:#error in getting hours
+            return
+
         ViewHours(hours)
 
 
@@ -296,7 +327,7 @@ class GUI:
         self.hinta_nyt_.set(f"Sähkön hinta nyt: {hinta} snt")
 
         if self.heatingcontrol_.error_in_internet_connection_ == True:
-            self.hinnat_haettu_.set("Ongelma hintojen haussa, toimiiko internetyhteys?")  
+            self.hinnat_haettu_.set("Ongelma hintojen haussa!")
         else:
             self.hinnat_haettu_.set("Hintatiedot haettu onnistuneesti!")
 
@@ -328,15 +359,11 @@ class GUI:
                 self.tuntimaara_ilmaisin_label_.config(text=str(self.tuntimaara_.get()))  # Päivitä Label-widgetin teksti
 
 
-
-
-
         elif self.aikaikkuna_.get() == 2: #48 tunnin aikaikkuna
             self.heatingcontrol_.from_48_hour_ = True
         SaveSettings(self.heatingcontrol_) #save settings to json file
 
     def PaivitaOhjaus(self):
-
         if self.ohjaus_.get() == 1:
             self.heatingcontrol_.SetManuallyOff()
         elif self.ohjaus_.get() == 2:
@@ -355,7 +382,6 @@ class GUI:
 
         value = self.tuntimaara_.get()
 
-        value += 1 #lisätään arvoa
 
 
         if self.heatingcontrol_.from_48_hour_ == False: #käytössä 23h
@@ -366,6 +392,7 @@ class GUI:
                 return #ei tehdä mitään
 
 
+        value += 1 #lisätään arvoa
 
         self.tuntimaara_.set(value)
 
@@ -375,6 +402,15 @@ class GUI:
 
         self.tuntimaara_ilmaisin_label_.config(text=str(value))  # Päivitä Label-widgetin teksti
 
+
+
+    def NappiPohjaan(self,event):
+        self.nappi_painettu_ = True
+        self.PienennaTuntimaara()
+
+
+    def NappiYlos(self,event):
+        self.nappi_painettu_ = False
 
     def PienennaTuntimaara(self):
         '''
@@ -398,6 +434,10 @@ class GUI:
 
         self.tuntimaara_ilmaisin_label_.config(text=str(value))  # Päivitä Label-widgetin teksti
 
+
+        print(self.nappi_painettu_)
+        if self.nappi_painettu_ == True:
+            window.after(400, self.PienennaTuntimaara)  # automatically destroys the window in 10 seconds
 
     def LisaaHintaRaja(self):
         '''
