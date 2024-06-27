@@ -1,4 +1,4 @@
-import RPi.GPIO as GPIO 
+import RPi.GPIO as GPIO
 from copy import deepcopy
 import json
 import time
@@ -35,7 +35,7 @@ class HeatingControl(Thread):
         
         self.error_in_internet_connection_ = True
         self.error_in_temp_read_ = True #Temperature measurement error until stated otherwise.
-        self.from_48_hour_ = from_48_hour #Are we using a 23 or 42-hour time window for price comparison?
+        self.from_48_hour_ = from_48_hour #Are we using a 23 or 48-hour time window for price comparison?
 
 
         self.heating_on_ = False
@@ -70,6 +70,7 @@ class HeatingControl(Thread):
 
 
 
+
     def CreateSQLConnection(self,server_ip:str,username:str,password:str):
         self.sql_object_ = SQLConnection(server_ip,username,password)
         
@@ -95,7 +96,7 @@ class HeatingControl(Thread):
         elif os.path.isfile(f"data/prices/{yesterday}.json") == True: #if yesterday data is exist
             json_file_name = f"data/prices/{yesterday}.json"
         else:
-            raise Exception("json file is not exist")
+            return  None
 
 
         with open(json_file_name) as json_file:
@@ -153,7 +154,7 @@ class HeatingControl(Thread):
 
 
         if the current price is among the lowest, return True
-
+        update self.current_price_
         '''
         
         
@@ -204,8 +205,19 @@ class HeatingControl(Thread):
     def SetMaxTemp(self,max_temp:int)->None:
         self.max_temp_ = max_temp
 
-    def SetChapestHour(self,hour_count):
-        self.hour_count_ = hour_count
+    def SetHourCount(self, hour_count):
+
+        if hour_count < 1:
+            raise ValueError("Invalid hour count!")
+
+        if self.from_48_hour_ == False:
+            if hour_count > 23:
+                raise ValueError("Invalid hour count!")
+        else:
+            if hour_count > 48:
+                raise ValueError("Invalid hour count!")
+
+        self.hour_count_ = hour_count #set hour count
     
     def SetPriceLimit(self,limit:int):
         self.price_limit_ = limit
@@ -260,6 +272,9 @@ class HeatingControl(Thread):
             self.error_in_internet_connection_ = True
         else: 
             self.error_in_internet_connection_ = False
+            self.__IsChapestHour() #update prices
+
+
 
         #init timers
         timer = time.time()
