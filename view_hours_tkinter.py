@@ -37,7 +37,7 @@ def ViewHours(data):
     current_hour = datetime.now().strftime('%H')
 
     # Define maximum price for scaling
-    max_price = 15
+    max_price = 16
 
     # Draw bars
     bar_width = 20  # Decrease bar width to fit all 24 hours
@@ -56,7 +56,12 @@ def ViewHours(data):
 
                 draw_bar(x, y, bar_width, bar_height, get_color(price))
                 canvas.create_text(x + bar_width // 2, y + 10, text=hour, anchor=N)
-                canvas.create_text(x + bar_width // 2, y + bar_height - 10, text=f"{price:.0f}", anchor=S)
+
+                if price >= 10:
+                    canvas.create_text(x + bar_width // 2, y + bar_height - 10, text=f"{price:.0f}", anchor=S)  #if the price is 10 or more, no decimal is displayed
+                else:
+                    canvas.create_text(x + bar_width // 2, y + bar_height - 10, text=f"{price:.1f}", anchor=S) #show decimal
+
                 canvas.create_text(x + bar_width // 2, y + 30, text=status, anchor=N)
                 if str(hour) == current_hour:
                     canvas.create_line(x + bar_width // 2, y, x + bar_width // 2, y + bar_height, fill="blue", width=2)
@@ -81,9 +86,9 @@ def ViewHours(data):
 
 if __name__ == "__main__":
     # Test the function
-    your_data = [['2024-02-18T01:00:00.000Z', 1.691, True], ['2024-02-18T02:00:00.000Z', 1.7, True],
-                 ['2024-02-18T03:00:00.000Z', 3.086, True], ['2024-02-18T04:00:00.000Z', 3.524, True],
-                 ['2024-02-18T05:00:00.000Z', 15, True], ['2024-02-18T06:00:00.000Z', 4.333, True],
+    your_data = [['2024-02-18T01:00:00.000Z', 12, True], ['2024-02-18T02:00:00.000Z', 16, True],
+                 ['2024-02-18T03:00:00.000Z', 15, True], ['2024-02-18T04:00:00.000Z', 10, True],
+                 ['2024-02-18T05:00:00.000Z', 10, True], ['2024-02-18T06:00:00.000Z', 10, True],
                  ['2024-02-18T07:00:00.000Z', 16, True], ['2024-02-18T08:00:00.000Z', 4.912, True],
                  ['2024-02-18T14:00:00.000Z', 28, True], ['2024-02-18T13:00:00.000Z', 4.972, True],
                  ['2024-02-18T21:00:00.000Z', 5.005, True], ['2024-02-18T11:00:00.000Z', 5.016, True],
