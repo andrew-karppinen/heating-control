@@ -9,7 +9,7 @@
 
 def TempRead()->float:
 
-    DHT = 4
+    DHT = 5
     # Read Temp and Hum from DHT22 or DHT11
     #if error return None
 
