@@ -6,6 +6,9 @@ Ohjaa lämmitystä pörssisähkön hinnan mukaan.
 ![Kuvakaappaus 2024-02-21 10-36-36](https://github.com/andrew-karppinen/heating-control/assets/99529988/ffc3d48f-85cc-4206-ae21-d91b45234194)
 
 
+![0H0A5258](https://github.com/user-attachments/assets/e0a6d1dd-2171-41ea-bb9a-368602f6efe9)
+
+
 ### Lataa uusin versio: [releases tab](https://github.com/andrew-karppinen/heating-control/releases/latest)
 
 
