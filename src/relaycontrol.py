@@ -15,9 +15,9 @@ def RelayControl(on: bool):
     GPIO.setup(gpio_pin, GPIO.OUT)
 
     if on:
-        GPIO.output(gpio_pin, GPIO.HIGH)  # turn on relay
+        GPIO.output(gpio_pin, GPIO.LOW)  # turn on relay
     else:
-        GPIO.output(gpio_pin, GPIO.LOW)   # turn off relay
+        GPIO.output(gpio_pin, GPIO.HIGH)   # turn off relay
 
 if __name__ == "__main__":
     try:
