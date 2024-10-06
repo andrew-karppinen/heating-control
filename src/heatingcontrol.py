@@ -12,7 +12,7 @@ from src import *
 
 GPIO.setwarnings(False) #disable warnings
 
-        
+
 
 
 
@@ -257,7 +257,10 @@ class HeatingControl(Thread):
             RelayControl(False)  # set heating off
             self.heating_on_ = False
             self.WriteLogData()  # save event to log data file
+
     def run(self):
+
+        RelayControl(self.heating_on_) #set heating on/off
 
         self.current_temp_ = TempRead() #read temp
         if self.current_temp_ == None: #Error in temperature measurement
