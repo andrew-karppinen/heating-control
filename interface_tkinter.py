@@ -260,7 +260,7 @@ class GUI:
             self.lampotilan_seuranta_.set(value=False)
 
         #sulje ohjelma nappi
-        sulje = Button(checkbutton_frame,text="Sulje ohjelma",command=self.Close,font=(self.font_, self.fontti_koko_))
+        sulje = Button(checkbutton_frame,text="Sulje sovellus",command=self.Close,font=(self.font_, self.fontti_koko_))
         sulje.grid(row =9,column=1)
         
         #tuntinäkymä nappi
