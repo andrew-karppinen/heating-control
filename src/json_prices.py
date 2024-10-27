@@ -20,6 +20,33 @@ def muunna_aikaleima(aikaleima_str):
         return None
 
 
+def has_next_day_prices(data):
+    '''
+    Tutkii hintatiedot ja jos sieltä löytyy seuraavan päivän hintatiedot palauttaa True muuten False
+    '''        
+
+    prices = data.get("prices", [])
+    if not prices:
+        return False
+
+    # Get the current date
+    current_date = datetime.now().date()
+
+    # Define the upcoming day
+    upcoming_day = current_date + timedelta(days=1)
+
+    # Create a set of all hours for the upcoming day
+    all_hours = {datetime.combine(upcoming_day, datetime.min.time()) + timedelta(hours=i) for i in range(24)}
+
+    # Collect the hours present in the price data for the upcoming day
+    present_hours = set()
+    for price_info in prices:
+        start_date = datetime.fromisoformat(price_info["startDate"][:-1]) #format str to datetime object
+        if start_date.date() == upcoming_day:
+            present_hours.add(start_date)
+
+    # Check if all hours are present
+    return all_hours == present_hours
 
 def GetCurrentPrice(jsondata)->float:
     '''
@@ -88,6 +115,7 @@ def Write48hPricesToJSON() -> bool:
     Hakee 42 tunin hintatiedot netistä ja kirjoittaa ne json tiedostoon
 
     Jos kello yli 16 ja tämän päivän hintatietoja ei ole haettu, haetaan uudet hintatiedot ja nimetään ne tänää päivän mukaan
+    tässä tapauksessa varmistetaan että uudet hintatiedot todella sisältävät seuraavan päivän hintatiedot, jos ei palautetaan False eli virhe
 
     jos kello alle 16 ja tämän eikä eilisen päivän hintatietoja haettu haetaan uudet hintatiedot ja nimetään ne eilisen päivän mukaan
 
@@ -134,8 +162,21 @@ def Write48hPricesToJSON() -> bool:
                 return False
             else:
                 return True
-
-
+        else: #json file is allready in exist, check if it has next day prices
+            with open(f"data/prices/{today}.json", "r") as outfile:
+                json_data = json.loads(outfile.read()) #read json file to dict
+            if has_next_day_prices(json_data) == False:
+                if Write(name_yesterday=False) == False:
+                    return False
+                else:
+                    with open(f"data/prices/{today}.json", "r") as outfile:
+                        json_data = json.loads(outfile.read())  # read json file to dict
+                    if has_next_day_prices(json_data) == False:
+                        return False
+                    else:
+                        return True
+            else:
+                return True
 
     else:  # kello alle 16
         if os.path.isfile(f"data/prices/{yesterday}.json") == False:  # if json file is not already in exist
@@ -150,11 +191,13 @@ def Write48hPricesToJSON() -> bool:
 
 if __name__ == "__main__":
 
-    #file = open("data/prices/2024-03-10.json", "r")
-    #json_data = file.read()
-    #file.close()
-    #json_data = json.loads(json_data)
+    file = open("data/prices/2024-10-26.json", "r")
+    json_data = file.read()
+    file.close()
+    json_data = json.loads(json_data)
+
+    print(has_next_day_prices(json_data))
 
     #print(GetCurrentDayPrices(json_data))
     #print(GetCurrentPrice(json_data))
-    print(Write48hPricesToJSON())
+    #print(Write48hPricesToJSON())
