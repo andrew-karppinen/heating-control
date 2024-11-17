@@ -321,7 +321,7 @@ class GUI:
 
     def NaytaTuntinakyma(self):
         hours = self.heatingcontrol_.Hours()
-        if hours == None:#error in getting hours
+        if hours == False:#error in getting hours
             return
 
         ViewHours(hours)

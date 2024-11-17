@@ -20,12 +20,46 @@ def muunna_aikaleima(aikaleima_str):
         return None
 
 
-def has_next_day_prices(data):
+def ReadPrices()->dict:
+    '''
+    Read json data from file
+    if json file is incorrect return False
+    :return: json data as dict
+    '''
+
+
+    today = str(date.today())  # current day
+    yesterday = str(date.today() - timedelta(days=1))  # yesterday
+
+    if os.path.isfile(f"data/prices/{today}.json") == True:  # if today data is exist
+        json_file_name = f"data/prices/{today}.json"
+    elif os.path.isfile(f"data/prices/{yesterday}.json") == True:  # if yesterday data is exist
+        json_file_name = f"data/prices/{yesterday}.json"
+    else:
+        return False
+
+    try:
+        file = open(json_file_name, "r")
+        json_data = json.loads(file.read())
+        file.close()
+    except: #corrupted json file
+        if Write48hPricesToJSON(overwrite=True) == False: # try to write prices to json
+            return False
+        prices = ReadPrices() #recursive call
+        if prices != False:
+            return prices
+        else:
+            return False
+
+    return json_data
+
+
+def has_next_day_prices(jsondata):
     '''
     Tutkii hintatiedot ja jos sieltä löytyy seuraavan päivän hintatiedot palauttaa True muuten False
     '''        
 
-    prices = data.get("prices", [])
+    prices = jsondata.get("prices", [])
     if not prices:
         return False
 
@@ -92,7 +126,7 @@ def convert_to_local_time(json_data:dict):
         # Muunna merkkijono datetime-objektiksi
         utc_aika = datetime.fromisoformat(aika[:-1])
 
-        #Hanki tietokoneen paikallinen aikavyöhyke
+        #hae tietokoneen paikallinen aikavyöhyke
         paikallinen_aikavyohyke = get_localzone()
 
         #Muunna UTC-aika paikalliseksi ajaksi
@@ -109,7 +143,7 @@ def convert_to_local_time(json_data:dict):
         price_entry['endDate'] = muunna_aika(price_entry['endDate'])
 
     return muokattu_data
-def Write48hPricesToJSON() -> bool:
+def Write48hPricesToJSON(overwrite:bool=False) -> bool:
 
     '''
     Hakee 42 tunin hintatiedot netistä ja kirjoittaa ne json tiedostoon
@@ -133,7 +167,7 @@ def Write48hPricesToJSON() -> bool:
         
         try:
             api_endpoint = f"https://api.porssisahko.net/v1/latest-prices.json"  # api endpoint
-            json_data = requests.get(api_endpoint).json()  # get json
+            json_data = requests.get(api_endpoint,timeout=5).json()  # get json
 
             json_data = convert_to_local_time(json_data) #convert times to Finnish time zone
             json_object = json.dumps(json_data, indent=4)  # json to str
@@ -157,7 +191,7 @@ def Write48hPricesToJSON() -> bool:
     hour = datetime.now().hour  # nykyinen tunti
 
     if hour > 16:  # kello yli 16
-        if os.path.isfile(f"data/prices/{today}.json") == False:  # if json file is not already in exist
+        if os.path.isfile(f"data/prices/{today}.json") == False or overwrite == True:  # if json file is not already in exist
             if Write(name_yesterday=False) == False:
                 return False
             else:
@@ -179,8 +213,8 @@ def Write48hPricesToJSON() -> bool:
                 return True
 
     else:  # kello alle 16
-        if os.path.isfile(f"data/prices/{yesterday}.json") == False:  # if json file is not already in exist
-            if os.path.isfile(f"data/prices/{today}.json") == False:  # if json file is not already in exist
+        if os.path.isfile(f"data/prices/{yesterday}.json") == False or overwrite == True:  # if json file is not already in exist
+            if os.path.isfile(f"data/prices/{today}.json") == False or overwrite == True:  # if json file is not already in exist
 
                 if Write(name_yesterday=True) == False:
                     return False
@@ -191,12 +225,14 @@ def Write48hPricesToJSON() -> bool:
 
 if __name__ == "__main__":
 
-    file = open("data/prices/2024-10-26.json", "r")
-    json_data = file.read()
-    file.close()
-    json_data = json.loads(json_data)
+    #file = open("data/prices/2024-10-26.json", "r")
+    #json_data = file.read()
+    #file.close()
+    #json_data = json.loads(json_data)
 
-    print(has_next_day_prices(json_data))
+    #print(has_next_day_prices(json_data))
+
+    print(ReadPrices())
 
     #print(GetCurrentDayPrices(json_data))
     #print(GetCurrentPrice(json_data))
