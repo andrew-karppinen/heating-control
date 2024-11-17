@@ -5,7 +5,7 @@ import os
 import json
 import pytz
 from tzlocal import  get_localzone
-
+from jsonschema import validate, ValidationError
 
 def muunna_aikaleima(aikaleima_str):
     # Määritä aikaformaatti
@@ -18,6 +18,38 @@ def muunna_aikaleima(aikaleima_str):
     except ValueError as e:
         print(f"Virhe: {e}")
         return None
+
+
+
+def IsValid(json_data)->None:
+    '''
+    check json price data is valid
+    causes ValidationError if json data is invalid
+    :param json_data:
+    '''
+
+    schema = {
+        "type": "object",
+        "properties": {
+            "prices": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "price": {"type": "number"},
+                        "startDate": {"type": "string", "format": "date-time"},
+                        "endDate": {"type": "string", "format": "date-time"}
+                    },
+                    "required": ["price", "startDate", "endDate"]
+                }
+            }
+        },
+        "required": ["prices"]
+    }
+
+    validate(instance=json_data, schema=schema)
+
+
 
 
 def ReadPrices()->dict:
@@ -42,6 +74,9 @@ def ReadPrices()->dict:
         file = open(json_file_name, "r")
         json_data = json.loads(file.read())
         file.close()
+
+        IsValid(json_data) #check json data is valid
+
     except: #corrupted json file
         if Write48hPricesToJSON(overwrite=True) == False: # try to write prices to json
             return False
@@ -143,6 +178,7 @@ def convert_to_local_time(json_data:dict):
         price_entry['endDate'] = muunna_aika(price_entry['endDate'])
 
     return muokattu_data
+
 def Write48hPricesToJSON(overwrite:bool=False) -> bool:
 
     '''
@@ -168,6 +204,8 @@ def Write48hPricesToJSON(overwrite:bool=False) -> bool:
         try:
             api_endpoint = f"https://api.porssisahko.net/v1/latest-prices.json"  # api endpoint
             json_data = requests.get(api_endpoint,timeout=5).json()  # get json
+
+            IsValid(json_data)  # check json data is valid
 
             json_data = convert_to_local_time(json_data) #convert times to Finnish time zone
             json_object = json.dumps(json_data, indent=4)  # json to str
@@ -225,11 +263,12 @@ def Write48hPricesToJSON(overwrite:bool=False) -> bool:
 
 if __name__ == "__main__":
 
-    #file = open("data/prices/2024-10-26.json", "r")
+    #file = open("data/prices/2024-11-17.json", "r")
     #json_data = file.read()
     #file.close()
     #json_data = json.loads(json_data)
 
+    #print(IsValid(json_data))
     #print(has_next_day_prices(json_data))
 
     print(ReadPrices())
