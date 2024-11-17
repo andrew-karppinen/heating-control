@@ -85,22 +85,13 @@ class HeatingControl(Thread):
         '''
         The function returns 23 records containing information about the price, time, and whether the heating is on during that hour
         list = [starttime,price,heatingon]
+        if error return False
         '''
 
 
-        today = str(date.today()) #current day
-        yesterday = str(date.today() - timedelta(days=1)) #yesterday
-
-        if os.path.isfile(f"data/prices/{today}.json") == True: #if today data is exist
-            json_file_name = f"data/prices/{today}.json"
-        elif os.path.isfile(f"data/prices/{yesterday}.json") == True: #if yesterday data is exist
-            json_file_name = f"data/prices/{yesterday}.json"
-        else:
-            return  None
-
-
-        with open(json_file_name) as json_file:
-            json_data = json.load(json_file)
+        json_data = ReadPrices() #get prices from json file
+        if json_data == False:
+            return False
 
 
         hours = []
@@ -160,19 +151,12 @@ class HeatingControl(Thread):
         
         hour = datetime.now().hour #get current hour
 
-        today = str(date.today()) #current day
-        yesterday = str(date.today() - timedelta(days=1)) #yesterday
-        
-        if os.path.isfile(f"data/prices/{today}.json") == True: #if today data is exist
-            json_file_name = f"data/prices/{today}.json"
-        elif os.path.isfile(f"data/prices/{yesterday}.json") == True: #if yesterday data is exist
-            json_file_name = f"data/prices/{yesterday}.json"
-        else:
-            raise Exception("json file is not exist")
+        json_data = ReadPrices()  #get prices from json file
 
+        if json_data == False: #if incorrect json file or something else
+            self.error_in_internet_connection_ = True
+            return False
 
-        with open(json_file_name) as json_file:
-            json_data = json.load(json_file)
 
         #get current price:        
         self.current_price_ =  GetCurrentPrice(json_data) #get json
