@@ -47,7 +47,7 @@ class HeatingControl(Thread):
         self.using_sql_ = False
         self.sql_object_ = None
 
-
+        self.deadman_clutch_timer_ = 0
 
 
     def Stop(self):
@@ -67,7 +67,18 @@ class HeatingControl(Thread):
 
 
 
+    def UpdateDeadManClutch(self):
+        '''
+        dead man's clutch
+        updater time to txt file
+        '''
 
+        if self.is_alive() == True and self.ready_ == True:
+            time = datetime.today().strftime('%Y-%m-%d %H:%M:%S') #get current time
+
+        file = open("data/deadmanclutch.txt","w")
+        file.write(time)
+        file.close()
 
 
 
@@ -261,10 +272,11 @@ class HeatingControl(Thread):
             self.error_in_internet_connection_ = False
             self.__IsChapestHour() #update prices
 
-
+        self.UpdateDeadManClutch() #update deadman clutch timer
 
         #init timers
-        timer = time.time()
+        timer = time.time() #temperature read timer
+        timer2 = time.time() #deadman clutch timer
 
 
         self.ready_ = True
@@ -275,7 +287,9 @@ class HeatingControl(Thread):
                 exit() #kill python process
 
 
-
+            if time.time() - timer2 > 60: #update deadman clutch timer one minute
+                timer2 = time.time()
+                self.UpdateDeadManClutch()
 
 
             if self.using_sql_ == True:
