@@ -101,7 +101,7 @@ class GUI:
         self.fontti_koko_ = 16 #fontin koko
 
         self.max_hintaraja_ = 50 #snt
-
+        self.min_hintaraja_ = -20
 
         self.nappi_painettu_ = False
 
@@ -488,7 +488,7 @@ class GUI:
 
         value = self.hintaraja_.get()
 
-        if value <= 0:  # hintaraja on jo niin matala kuin mahdollista
+        if value <= self.min_hintaraja_:  # hintaraja on jo niin matala kuin mahdollista
             return  # ei tehdä mitään
 
         value -= 1
