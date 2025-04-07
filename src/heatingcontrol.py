@@ -76,9 +76,9 @@ class HeatingControl(Thread):
         if self.is_alive() == True and self.ready_ == True:
             time = datetime.today().strftime('%Y-%m-%d %H:%M:%S') #get current time
 
-        file = open("data/deadmanclutch.txt","w")
-        file.write(time)
-        file.close()
+            file = open("data/deadmanclutch.txt","w")
+            file.write(time)
+            file.close()
 
 
 
