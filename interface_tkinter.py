@@ -51,16 +51,13 @@ def SaveSettings(heatingcontrol:object):
         
     #mode1 = off, mode2 = auto, mode3 = on
 
-    if heatingcontrol.from_48_hour_==True:
-        time_window = 2
-    else:
-        time_window = 1
+
 
 
     json_object = {'settings': {
         'thermal_limit': heatingcontrol.thermal_limit_,
-        '48h':time_window,
-        'hour_count': heatingcontrol.hour_count_,
+        '48h':heatingcontrol.from_48_hour_,
+        'hour_count': heatingcontrol.GetHourCount(),
         'mode':mode,
         'max_temperature': heatingcontrol.max_temp_,
         'price_limit': heatingcontrol.price_limit_,
@@ -77,7 +74,7 @@ class GUI:
     def __init__(self): #constructor
 
 
-        self.default_settings_ = {"settings": {"thermal_limit": 16, "48h": 1, "hour_count": 23, "mode": 1, "max_temperature": 0, "price_limit": 5, "temp_tracing": False}}
+        self.default_settings_ = {"settings": {"thermal_limit": 16, "48h": 0, "hour_count": 23, "mode": 1, "max_temperature": 0, "price_limit": 5, "temp_tracing": False}}
 
         #load settings
         try:
@@ -89,7 +86,7 @@ class GUI:
             f.write(json.dumps(self.default_settings_))
             f.close()
 
-            self.settings_ = self.default_settings_
+            self.settings_ = self.default_settings_['settings']
 
         self.heatingcontrol_ = HeatingControl(self.settings_['48h'],self.settings_['hour_count'],self.settings_["price_limit"],self.settings_['thermal_limit']) #luodaan lämmityksenohjaus olio ja threadi
         self.heatingcontrol_.start() #käynnistetään lämmityksenohjaus threadi
@@ -138,8 +135,6 @@ class GUI:
         self.hintaraja_ilmaisin_label_.pack(side=LEFT)
         vahenna_hintaraja = Button(hintaraja_frame, text="          +         ",font=(self.font_, self.fontti_koko_),command=self.LisaaHintaRaja) #kasvata button
         vahenna_hintaraja.pack(side=LEFT)
-
-
 
 
         #maksimilämpötila
@@ -214,7 +209,7 @@ class GUI:
 
         # aikaikkuna-radiobuttonit
 
-        self.aikaikkuna_ = IntVar(value=self.settings_["48h"])
+        self.aikaikkuna_ = IntVar(value=self.settings_["48h"]+1)
 
         aikaikkuna_frame = Frame(checkbutton_frame)
         aikaikkuna_frame.grid(row=7, column=1, columnspan=2)

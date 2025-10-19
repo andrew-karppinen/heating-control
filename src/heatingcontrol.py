@@ -28,7 +28,7 @@ class HeatingControl(Thread):
 
         self.is_chapest_hour_ = False
 
-        self.hour_count_ = hour_count
+        self.__hour_count_ = hour_count * 4
         self.thermal_limit_ = thermal_limit
         self.max_temp_ = 0 #If this temperature is exceeded, heating is not kept on.
         self.temp_tracking_ = True
@@ -62,7 +62,7 @@ class HeatingControl(Thread):
         time = datetime.today().strftime('%Y-%m-%d %H:%M:%S') #get current time
 
         log_data_file = open("data/log data.csv","a")
-        log_data_file.write(f"{time};{self.running_};{self.heating_on_};{self.current_price_};{self.temp_tracking_};{self.current_temp_};{self.thermal_limit_};{self.max_temp_};{self.from_48_hour_};{self.hour_count_}\n")
+        log_data_file.write(f"{time};{self.running_};{self.heating_on_};{self.current_price_};{self.temp_tracking_};{self.current_temp_};{self.thermal_limit_};{self.max_temp_};{self.from_48_hour_};{self.__hour_count_}\n")
         log_data_file.close()
 
 
@@ -76,9 +76,9 @@ class HeatingControl(Thread):
         if self.is_alive() == True and self.ready_ == True:
             time = datetime.today().strftime('%Y-%m-%d %H:%M:%S') #get current time
 
-        file = open("data/deadmanclutch.txt","w")
-        file.write(time)
-        file.close()
+            file = open("data/deadmanclutch.txt","w")
+            file.write(time)
+            file.close()
 
 
 
@@ -101,30 +101,22 @@ class HeatingControl(Thread):
 
 
         json_data = ReadPrices() #get prices from json file
+
+        if self.from_48_hour_ == False: #get current day prices
+            json_data = GetCurrentDayPricesJson(json_data)
+        else:
+            json_data = json_data["prices"]
         if json_data == False:
             return False
 
 
-        hours = []
-        json_data = json_data["prices"]
-        
-        
-        
-        if self.from_48_hour_ == False: #if using 23 hour time window, get current day data
-            today_prices = []
-            for i in json_data:
-
-                if muunna_aikaleima(i["startDate"]).day == datetime.now().day:
-                    today_prices.append(i)
-            json_data = today_prices
-            
-            
         sorted_list = sorted(json_data, key=lambda x: x["price"]) #sort hours by price
-
+        print(len(sorted_list))
         counter = 0
+        hours = []
         for hour in sorted_list:
 
-            if counter < self.hour_count_:
+            if counter <= self.__hour_count_-1:
                 hours.append([hour["startDate"],hour["price"],True])
 
             elif hour["price"] < self.price_limit_:
@@ -135,14 +127,17 @@ class HeatingControl(Thread):
 
             counter += 1
 
+
         #get current day prices
         today_prices = []
         for i in hours:
             if muunna_aikaleima(i[0]).day == datetime.now().day:
                 today_prices.append(i)
-        
-        
-        
+
+
+        #sort by time
+        today_prices.sort(key=lambda x: x[0])
+
         return today_prices
         
     def __IsChapestHour(self): #private method
@@ -168,26 +163,27 @@ class HeatingControl(Thread):
             self.error_in_internet_connection_ = True
             return False
 
-
-        #get current price:        
+        #get current price:
         self.current_price_ =  GetCurrentPrice(json_data) #get json
 
+        if self.current_price_ == False: #if incorrect json file or something else
+            self.error_in_internet_connection_ = True
+            return False
 
         if self.from_48_hour_ == True: #haetaan 48 tunnin hintatiedot
 
             prices = []
-            for i in range(48):
+            for i in range(len(json_data["prices"])):
                 prices.append(json_data["prices"][i]["price"])
         else: #get 24-hour price data.
             prices = GetCurrentDayPrices(json_data)
         prices.sort()
-        if self.current_price_ <= prices[self.hour_count_-1]: #if the current price is among the lowest
+        if self.current_price_ <= prices[self.__hour_count_-1]: #if the current price is among the lowest
             self.is_chapest_hour_ = True
             return True
         else:
             self.is_chapest_hour_ = False
-
-            return  False
+            return False
 
     def TempTracking(self,on:bool): #turn temperature tracing on/off
         if self.error_in_temp_read_ == False:
@@ -212,7 +208,10 @@ class HeatingControl(Thread):
             if hour_count > 48:
                 raise ValueError("Invalid hour count!")
 
-        self.hour_count_ = hour_count #set hour count
+        self.__hour_count_ = hour_count * 4 #set hour count
+
+    def GetHourCount(self)->int:
+        return self.__hour_count_ // 4
     
     def SetPriceLimit(self,limit:int):
         self.price_limit_ = limit
