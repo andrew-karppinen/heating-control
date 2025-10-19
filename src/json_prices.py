@@ -7,6 +7,11 @@ import pytz
 from tzlocal import  get_localzone
 from jsonschema import validate, ValidationError
 
+
+API_ENDPOINT = "https://api.porssisahko.net/v2/latest-prices.json"
+
+
+
 def muunna_aikaleima(aikaleima_str):
     # Määritä aikaformaatti
     aikaformaatti = "%Y-%m-%dT%H:%M:%S.%fZ"
@@ -115,34 +120,37 @@ def has_next_day_prices(jsondata):
             present_hours.add(start_date)
 
     # Check if all hours are present
-    return all_hours == present_hours
+    if len(present_hours) >= 24:
+        return True
+    else:
+        return False
 
 def GetCurrentPrice(jsondata)->float:
     '''
     lukee json datasta nykyisen tunnin hinnan ja palauttaa sen
-    jos sitä ei löydy palauttaa None
+    jos sitä ei löydy palauttaa False
     '''
 
-
     prices = jsondata["prices"]  # read settings
-
+    current_time = datetime.now().replace(microsecond=0)  # pyöristetään sekuntiin
 
     for i in prices:
+        start = muunna_aikaleima(i["startDate"]).replace(microsecond=0)
+        end = muunna_aikaleima(i["endDate"]).replace(microsecond=0)
 
-        current_time = datetime.now()
+        # vertailu sekunnin tarkkuudella
+        if start <= current_time <= end:
+            return i["price"]
 
-
-        if muunna_aikaleima(i["startDate"]).day == current_time.day and muunna_aikaleima(i["startDate"]).hour == current_time.hour:
-            price = i["price"]
-            return price
-
-    return None
+    return False
 
 
 
 
 def GetCurrentDayPrices(jsondata)->list:
-
+    '''
+    Return current day prices as list
+    '''
     prices = jsondata["prices"]  # read settings
 
 
@@ -151,6 +159,24 @@ def GetCurrentDayPrices(jsondata)->list:
 
         if muunna_aikaleima(i["startDate"]).day == datetime.now().day:
             today_prices.append(i["price"])
+
+
+    return today_prices
+
+
+def GetCurrentDayPricesJson(jsondata)->dict:
+    '''
+    Return current day prices as list of dicts (full json entries)
+    '''
+
+    prices = jsondata["prices"]  # read settings
+
+
+    today_prices = []
+    for i in prices:
+
+        if muunna_aikaleima(i["startDate"]).day == datetime.now().day:
+            today_prices.append(i)
 
 
     return today_prices
@@ -200,9 +226,9 @@ def Write48hPricesToJSON(overwrite:bool=False) -> bool:
 
     def Write(name_yesterday:bool):
         # write 48h prices to json file
-        
+
         try:
-            api_endpoint = f"https://api.porssisahko.net/v1/latest-prices.json"  # api endpoint
+            api_endpoint = API_ENDPOINT  # api endpoint
             json_data = requests.get(api_endpoint,timeout=5).json()  # get json
 
             IsValid(json_data)  # check json data is valid
@@ -210,7 +236,6 @@ def Write48hPricesToJSON(overwrite:bool=False) -> bool:
             json_data = convert_to_local_time(json_data) #convert times to Finnish time zone
             json_object = json.dumps(json_data, indent=4)  # json to str
         except Exception as a:
-            print(a)
             return False
 
 
@@ -271,8 +296,8 @@ if __name__ == "__main__":
     #print(IsValid(json_data))
     #print(has_next_day_prices(json_data))
 
-    print(ReadPrices())
+    #print(ReadPrices())
 
     #print(GetCurrentDayPrices(json_data))
     #print(GetCurrentPrice(json_data))
-    #print(Write48hPricesToJSON())
+    print(Write48hPricesToJSON())

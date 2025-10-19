@@ -1,113 +1,83 @@
 from tkinter import *
-from datetime import datetime
-
+from datetime import datetime, timedelta, timezone
 
 def ViewHours(data):
     root = Tk()
     root.title("Tuntinäkymä")
     root.geometry("640x480")
 
-
-    canvas = Canvas(root, width=640, height=410)  # Reduced height to leave space for the button
+    canvas = Canvas(root, width=700, height=410)
     canvas.grid(row=0, column=0, padx=10, pady=1)
 
-    # Function to draw a bar
     def draw_bar(x, y, width, height, color):
-        canvas.create_rectangle(x, y, x + width, y + height, fill=color)
+        canvas.create_rectangle(x, y, x + width, y + height, fill=color, width=0)
 
-    # Function to convert datetime string to hour
-    def get_hour(date_str):
-        dt_obj = datetime.fromisoformat(date_str[:-1])  # Convert ISO format to datetime object
-        return dt_obj.strftime('%H')
+    def draw_marker(x, y, width=7, height=10, color="black"):
+        # pieni kolmio alapuolelle
+        canvas.create_polygon(
+            x, y,
+            x - width // 2, y + height,
+            x + width // 2, y + height,
+            fill=color
+        )
 
-    # Function to convert boolean to "On" or "Off"
-    def convert_bool(value):
-        return "On" if value else "Off"
+    max_price = max(entry[1] for entry in data) if data else 1
+    bar_width = 6      # mahtuu 92 palkkia
+    spacing = 0        # pieni rako
+    y_base = 350
+    chart_left = 45    # palkkien alku x
+    scale_left = 25    # hintaskaalan x-koordinaatti
+    current_time = datetime.now()
 
-    # Colors for bars based on price
-    def get_color(price):
-        if price < 5:
-            return "green"
-        elif price < 7:
-            return "orange"
-        else:
-            return "red"
+    # Piirrä hintaskaalat vasemmalle (0%, 25%, 50%, 75%, 100%)
+    num_levels = 5
+    for i in range(num_levels):
+        level_price = max_price * i / (num_levels - 1)
+        y = y_base - (level_price / max_price * 300)
+        canvas.create_line(scale_left, y, scale_left + 5, y, fill="black")  # lyhyt viiva
+        canvas.create_text(scale_left - 2, y, text=f"{level_price:.1f}", anchor=E, font=("Arial", 8))
 
-    # Get current hour
-    current_hour = datetime.now().strftime('%H')
+    # Lisää y-akselin teksti
+    canvas.create_text(scale_left + 10, y_base - 310, text="snt/kWh", anchor=S, font=("Arial", 10, "bold"))
 
-    # Define maximum price for scaling
-    max_price = 16
+    # Piirrä palkit
+    for i, entry in enumerate(data):
+        starttime_str, price, heating_on = entry
+        starttime = datetime.fromisoformat(starttime_str.replace("Z", ""))
+        endtime = starttime + timedelta(minutes=15)  # oletetaan 15 min per palkki
 
-    # Draw bars
-    bar_width = 20  # Decrease bar width to fit all 24 hours
-    spacing = 5  # Decrease spacing to fit all 24 hours
-    for i in range(24):
-        found = False
-        for entry in data:
-            hour = int(get_hour(entry[0]))
-            price = entry[1]
-            status = convert_bool(entry[2])
+        x = chart_left + i * (bar_width + spacing)
+        bar_height = -price / max_price * 300  # suhteellinen korkeus
 
-            if hour == i:
-                x = 10 + i * (bar_width + spacing)
-                y = 350
-                bar_height = -min(price, max_price) * 20  # Cap the height at max_price
+        # väri lämmityksen mukaan
+        color = "green" if heating_on else "gray"
 
-                draw_bar(x, y, bar_width, bar_height, get_color(price))
-                canvas.create_text(x + bar_width // 2, y + 10, text=hour, anchor=N)
+        draw_bar(x, y_base, bar_width, bar_height, color)
 
-                if price >= 10:
-                    canvas.create_text(x + bar_width // 2, y + bar_height - 10, text=f"{price:.0f}", anchor=S)  #if the price is 10 or more, no decimal is displayed
-                else:
-                    canvas.create_text(x + bar_width // 2, y + bar_height - 10, text=f"{price:.1f}", anchor=S) #show decimal
+        # merkki nykyiselle ajalle
+        if starttime <= current_time < endtime:
+            draw_marker(x + bar_width / 2, y_base + 5)
 
-                canvas.create_text(x + bar_width // 2, y + 30, text=status, anchor=N)
-                if str(hour) == current_hour:
-                    canvas.create_line(x + bar_width // 2, y, x + bar_width // 2, y + bar_height, fill="blue", width=2)
-                found = True
-                break
+    # Lisää kellonajat alapuolelle
+    canvas.create_text(chart_left+20, y_base + 30, text="klo 0.0", anchor=N, font=("Arial", 8, "bold"))
+    canvas.create_text(chart_left + len(data) * (bar_width + spacing) -20, y_base + 20, text="klo 24.0", anchor=N, font=("Arial", 8, "bold"))
 
-        if not found:
-            x = 10 + i * (bar_width + spacing)
-            y = 350
-            draw_bar(x, y, bar_width, 0, "gray")
-            canvas.create_text(x + bar_width // 2, y + 10, text=i, anchor=N)
-
-    # Add close button
-    close_button = Button(root, text="Sulje ikkuna", command=root.destroy,font=("Arial", 20))
+    # Sulje-nappi
+    close_button = Button(root, text="Sulje ikkuna", command=root.destroy, font=("Arial", 20))
     close_button.grid(row=1, column=0, pady=(0, 0))
 
-
-    root.after(10000, root.destroy) #automatically destroys the window in 10 seconds
-
+    root.after(10000, root.destroy)
     root.mainloop()
 
 
 if __name__ == "__main__":
-    # Test the function
-    your_data = [['2024-02-18T01:00:00.000Z', 12, True], ['2024-02-18T02:00:00.000Z', 16, True],
-                 ['2024-02-18T03:00:00.000Z', 15, True], ['2024-02-18T04:00:00.000Z', 10, True],
-                 ['2024-02-18T05:00:00.000Z', 10, True], ['2024-02-18T06:00:00.000Z', 10, True],
-                 ['2024-02-18T07:00:00.000Z', 16, True], ['2024-02-18T08:00:00.000Z', 4.912, True],
-                 ['2024-02-18T14:00:00.000Z', 28, True], ['2024-02-18T13:00:00.000Z', 4.972, True],
-                 ['2024-02-18T21:00:00.000Z', 5.005, True], ['2024-02-18T11:00:00.000Z', 5.016, True],
-                 ['2024-02-18T12:00:00.000Z', 5.084, True], ['2024-02-18T09:00:00.000Z', 5.177, True],
-                 ['2024-02-19T02:00:00.000Z', 5.265, True], ['2024-02-18T15:00:00.000Z', 5.316, True],
-                 ['2024-02-19T01:00:00.000Z', 5.325, True], ['2024-02-18T10:00:00.000Z', 5.336, True],
-                 ['2024-02-18T22:00:00.000Z', 5.349, True], ['2024-02-18T20:00:00.000Z', 5.349, True],
-                 ['2024-02-19T00:00:00.000Z', 5.418, True], ['2024-02-19T04:00:00.000Z', 5.445, True],
-                 ['2024-02-19T03:00:00.000Z', 5.482, True], ['2024-02-18T23:00:00.000Z', 5.547, True],
-                 ['2024-02-19T05:00:00.000Z', 5.57, True], ['2024-02-18T19:00:00.000Z', 5.71, True],
-                 ['2024-02-18T17:00:00.000Z', 5.719, True], ['2024-02-18T16:00:00.000Z', 5.786, True],
-                 ['2024-02-18T18:00:00.000Z', 5.799, True], ['2024-02-19T06:00:00.000Z', 6.395, True],
-                 ['2024-02-20T00:00:00.000Z', 6.535, True], ['2024-02-19T23:00:00.000Z', 6.63, True],
-                 ['2024-02-19T22:00:00.000Z', 6.963, True], ['2024-02-19T21:00:00.000Z', 7.534, True],
-                 ['2024-02-19T15:00:00.000Z', 7.983, True], ['2024-02-19T07:00:00.000Z', 8.059, True],
-                 ['2024-02-19T16:00:00.000Z', 8.258, True], ['2024-02-19T14:00:00.000Z', 8.479, True],
-                 ['2024-02-19T17:00:00.000Z', 8.654, True], ['2024-02-19T13:00:00.000Z', 9.02, True],
-                 ['2024-02-19T18:00:00.000Z', 9.295, True], ['2024-02-19T10:00:00.000Z', 9.304, True],
-                 ['2024-02-19T20:00:00.000Z', 9.63, True], ['2024-02-19T11:00:00.000Z', 9.769, True],
-                 ['2024-02-19T08:00:00.000Z', 9.807, True], ['2024-02-19T12:00:00.000Z', 9.986, True],
-                 ['2024-02-19T09:00:00.000Z', 10.396, True], ['2024-02-19T19:00:00.000Z', 11.756, True]]
-    ViewHours(your_data)
+    # Testidata: 92 varttia (15 min välein)
+    start = datetime(2024, 2, 18, 0, 0, tzinfo=timezone.utc)
+    test_data = []
+    for i in range(92):
+        t = start + timedelta(minutes=15*i)
+        price = 4 + (i % 12) * 0.5
+        heating_on = (i % 3 != 0)
+        test_data.append([t.isoformat().replace("+00:00", "Z"), price, heating_on])
+
+    ViewHours(test_data)

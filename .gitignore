@@ -7,6 +7,8 @@ data/settings.json
 
 media/logo.png
 
+#fake rpi
+RPi/*
 
 #not important:
 
