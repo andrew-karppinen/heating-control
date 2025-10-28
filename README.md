@@ -4,7 +4,10 @@
 Ohjaa lämmitystä pörssisähkön hinnan mukaan.
 
 
-![0H0A5258](https://github.com/user-attachments/assets/e0a6d1dd-2171-41ea-bb9a-368602f6efe9)
+<img width="644" height="518" alt="kuva" src="https://github.com/user-attachments/assets/04f83664-9c51-4d77-bac1-4ccde96f0687" />
+
+<img width="644" height="518" alt="kuva" src="https://github.com/user-attachments/assets/b7a57473-f754-43f7-81d6-0af6db0d65bc" />
+
 
 
 ### Lataa uusin versio: [releases tab](https://github.com/andrew-karppinen/heating-control/releases/latest)
