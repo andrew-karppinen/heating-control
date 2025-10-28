@@ -44,7 +44,6 @@ class HeatingControl(Thread):
 
         self.timelimit_ = 7 #Checking if the temperature falls below the threshold, every 7 seconds.
 
-        self.using_sql_ = False
         self.sql_object_ = None
 
         self.deadman_clutch_timer_ = 0
@@ -81,15 +80,6 @@ class HeatingControl(Thread):
             file.close()
 
 
-
-    def CreateSQLConnection(self,server_ip:str,username:str,password:str):
-        self.sql_object_ = SQLConnection(server_ip,username,password)
-        
-    def UsingSQL(self,using:bool):
-        self.using_sql_ = using
-    
-    def GetSettingsFromSQL(self):
-        self.sql_object_.ReadSettingsFromSQL(self)
 
 
     def Hours(self)->list:
@@ -290,9 +280,6 @@ class HeatingControl(Thread):
                 timer2 = time.time()
                 self.UpdateDeadManClutch()
 
-
-            if self.using_sql_ == True:
-                self.sql_object_.ReadSettingsFromSQL(self) #read settings from sql database
 
 
 
