@@ -70,6 +70,11 @@ def SaveSettings(heatingcontrol:object):
     with open(f"{GetConfigDirectory()}/settings.json", "w") as outfile:
         outfile.write(json_object)
 
+
+
+
+
+
 class GUI:
     def __init__(self): #constructor
 
@@ -211,77 +216,54 @@ class GUI:
 
         self.aikaikkuna_ = IntVar(value=self.settings_["48h"]+1)
 
-        aikaikkuna_frame = Frame(checkbutton_frame)
-        aikaikkuna_frame.grid(row=7, column=1, columnspan=2)
-
-        aikaikkuna_texts = ["Käytä 23 tunnin aikaikkunaa", "Käytä 48 tunnin aikaikkunaa"]
-        aikaikkuna_values = [1, 2]
-        aikaikkuna_commands = [self.PaivitaAikaikkuna] * len(aikaikkuna_texts)
-
-
-        for text, value, command in zip(aikaikkuna_texts, aikaikkuna_values, aikaikkuna_commands):
-            r = ttk.Radiobutton(
-                aikaikkuna_frame,
-                text=text,
-                variable=self.aikaikkuna_,
-                value=value,
-                command=command,
-                style="TRadiobutton"
-            )
-            r.pack(side=LEFT, padx=5, pady=5)
 
 
 
-        #käytetäänkö lämpötilan seurantaa nappi
 
         self.lampotilan_seuranta_ = BooleanVar(value=self.settings_["temp_tracing"])
-        style.configure("TCheckbutton", font=(self.font_, self.fontti_koko_), padding=10)
-        style.map("TCheckbutton",
-                  background=[('selected', 'lightblue'), ('!selected', 'white')],
-                  foreground=[('selected', 'black'), ('!selected', 'gray')],
-                  relief=[('selected', 'sunken'), ('!selected', 'raised')])
 
-        self.checkbutton_lampotilan_seuranta_ = ttk.Checkbutton(
-            checkbutton_frame,
-            text="Käytä lämpötilan seurantaa",
-            variable=self.lampotilan_seuranta_,
-            command=self.PaivitaLampotilanSeuranta,
-            style="TCheckbutton"
-        )
-        self.checkbutton_lampotilan_seuranta_.grid(row=8, column=1, padx=5, pady=10)
 
 
         if self.heatingcontrol_.error_in_temp_read_ == True:
             self.lampotilan_seuranta_.set(value=False)
 
-        #sulje ohjelma nappi
-        sulje = Button(checkbutton_frame,text="Sulje sovellus",command=self.Close,font=(self.font_, self.fontti_koko_))
-        sulje.grid(row =9,column=1)
-        
-        #tuntinäkymä nappi
-        tuntinakyma = Button(checkbutton_frame,text="Tuntinäkymä",command=self.NaytaTuntinakyma,font=(self.font_, self.fontti_koko_))
-        tuntinakyma.grid(row =9,column=2)
+        # Frame nappeja varten
+        nappirivi_frame = Frame(checkbutton_frame)
+        nappirivi_frame.grid(row=9, column=1, columnspan=3, sticky="w")
 
-        
+
+        buttons_padx = 30
+        # Sulje, Tuntinäkymä ja Asetukset napit vierekkäin
+        sulje = Button(nappirivi_frame, text="Sulje sovellus", command=self.Close, font=(self.font_, self.fontti_koko_))
+        sulje.pack(side=LEFT, padx=buttons_padx, pady=0)
+
+        tuntinakyma = Button(nappirivi_frame, text="Hintanäkymä", command=self.NaytaTuntinakyma,
+                             font=(self.font_, self.fontti_koko_))
+        tuntinakyma.pack(side=LEFT, padx=buttons_padx, pady=0)
+
+        asetukset_btn = Button(nappirivi_frame, text="Asetukset", command=self.SettingsMenu,
+                               font=(self.font_, self.fontti_koko_))
+        asetukset_btn.pack(side=LEFT, padx=buttons_padx, pady=0)
+
         #teksti joka kertoo onko lämmitys päällä
         self.lammitys_paalla_ = StringVar()
         self.lammitys_paalla_.set("Lämmitys ei ole tällä hetkellä päällä!")
         
-        Label(checkbutton_frame, textvariable=self.lammitys_paalla_,font=(self.font_, self.fontti_koko_)).grid(row =10,column=1)
+        Label(checkbutton_frame, textvariable=self.lammitys_paalla_,font=(self.font_, self.fontti_koko_)).grid(row =10,column=1,sticky="w")
 
     
         #teksti joka näyttää nykyisen sähkönhinnan
         self.hinta_nyt_ = StringVar()
         self.hinta_nyt_.set("Sähkön hinta nyt: 0.0 snt")
         
-        Label(checkbutton_frame, textvariable=self.hinta_nyt_,font=(self.font_, self.fontti_koko_)).grid(row =10,column=2,)
+        Label(checkbutton_frame, textvariable=self.hinta_nyt_,font=(self.font_, self.fontti_koko_)).grid(row =11,column=1,sticky="w")
 
 
         #teksti joka kertoo onko sähkön hintatiedot haettu onnistuneesti
         self.hinnat_haettu_ = StringVar()
         self.hinnat_haettu_.set("Hintatiedot haettu onnistuneesti!",)
         
-        Label(checkbutton_frame, textvariable=self.hinnat_haettu_,font=(self.font_, self.fontti_koko_)).grid(row =11,column=1)
+        Label(checkbutton_frame, textvariable=self.hinnat_haettu_,font=(self.font_, self.fontti_koko_)).grid(row =12,column=1,sticky="w")
 
         # Asetetaan oletusvalinnat
         self.PaivitaOhjaus()
@@ -296,12 +278,45 @@ class GUI:
 
         window.mainloop() #start gui
 
+    def SettingsMenu(self):
+        settings_win = Toplevel(window)
+        settings_win.title("Asetukset")
+        settings_win.geometry("640x480")
+        settings_win.transient(window)
+        settings_win.grab_set()
 
+        # Time-window radios
+        aika_frame = Frame(settings_win)
+        aika_frame.pack(anchor=W, padx=10, pady=(10, 5))
+        aikaikkuna_texts = ["Käytä 23 tunnin aikaikkunaa", "Käytä 48 tunnin aikaikkunaa"]
+        aikaikkuna_values = [1, 2]
+        for text, value in zip(aikaikkuna_texts, aikaikkuna_values):
+            r = ttk.Radiobutton(
+                aika_frame,
+                text=text,
+                variable=self.aikaikkuna_,
+                value=value,
+                command=self.PaivitaAikaikkuna,
+                style="TRadiobutton"
+            )
+            r.pack(side=LEFT, padx=5, pady=2)
 
+        # Temperature tracking checkbox
+        check_frame = Frame(settings_win)
+        check_frame.pack(anchor=W, padx=10, pady=(5, 10))
+        cb = ttk.Checkbutton(
+            check_frame,
+            text="Käytä lämpötilan seurantaa",
+            variable=self.lampotilan_seuranta_,
+            command=self.PaivitaLampotilanSeuranta,
+            style="TCheckbutton"
+        )
+        cb.pack(anchor=W)
 
-
-
-
+        # Close button
+        close_btn = Button(settings_win, text="Sulje", command=settings_win.destroy,
+                           font=(self.font_, self.fontti_koko_))
+        close_btn.pack(pady=(5, 10))
 
     def Close(self):
         self.heatingcontrol_.Stop() #close heating control
