@@ -18,7 +18,7 @@ GPIO.setwarnings(False) #disable warnings
 
 class HeatingControl(Thread):
 
-    def __init__(self,from_48_hour:bool = False,hour_count:int = 6,price_limit:float=5,thermal_limit:int=20):
+    def __init__(self,from_48_hour:bool = False,hour_count:int = 6,price_limit:float=5,thermal_limit:int=20,gpio_pin:int=6):
         Thread.__init__(self)
 
         self.killed_ = False
@@ -29,6 +29,8 @@ class HeatingControl(Thread):
         self.is_chapest_hour_ = False
 
         self.__hour_count_ = hour_count * 4
+        self.__gpio_pin_ = gpio_pin #relay gpio pin
+
         self.thermal_limit_ = thermal_limit
         self.max_temp_ = 0 #If this temperature is exceeded, heating is not kept on.
         self.temp_tracking_ = True
@@ -44,8 +46,6 @@ class HeatingControl(Thread):
 
         self.timelimit_ = 7 #Checking if the temperature falls below the threshold, every 7 seconds.
 
-        self.sql_object_ = None
-
         self.deadman_clutch_timer_ = 0
 
 
@@ -53,6 +53,18 @@ class HeatingControl(Thread):
         self.running_ = False
         GPIO.cleanup() #clear gpio pins
         self.killed_ = True
+
+
+    def SetGpioPin(self,gpio_pin:int):
+        self.__gpio_pin_ = gpio_pin
+        GPIO.cleanup() #clear gpio pins
+
+        #run current state to new pin
+        RelayControl(self.heating_on_,self.__gpio_pin_)
+
+    def GetGpioPin(self)->int:
+        return self.__gpio_pin_
+
 
     def WriteLogData(self):
         '''
@@ -214,7 +226,7 @@ class HeatingControl(Thread):
         #set manually
         if self.heating_on_ == False: #if heating is off, turn it on
             self.running_ = False
-            RelayControl(True) 
+            RelayControl(True,self.__gpio_pin_)
             self.heating_on_ = True 
             self.WriteLogData() #save event to log data file
 
@@ -223,7 +235,7 @@ class HeatingControl(Thread):
         if self.heating_on_ == True: #if heating is on, turn it off
 
             self.running_ = False
-            RelayControl(False)
+            RelayControl(False,self.__gpio_pin_)
             self.heating_on_ = False
             self.WriteLogData() #save event to log data file
 
@@ -232,19 +244,19 @@ class HeatingControl(Thread):
     def __SetHeatingOn(self):
         if self.temp_tracking_ == False or self.temp_tracking_ == True and self.current_temp_ < self.max_temp_:  #If heating tracking is enabled, ensure that the maximum temperature is not exceeded.
             if self.heating_on_ == False:  #if heating is on
-                RelayControl(True)
+                RelayControl(True,self.__gpio_pin_)
                 self.heating_on_ = True
                 self.WriteLogData()  # save event to log data file
 
     def __SetHeatingOff(self):
         if self.heating_on_ == True:  #if heating is on
-            RelayControl(False)  # set heating off
+            RelayControl(False,self.__gpio_pin_)  # set heating off
             self.heating_on_ = False
             self.WriteLogData()  # save event to log data file
 
     def run(self):
 
-        RelayControl(self.heating_on_) #set heating on/off
+        RelayControl(self.heating_on_,self.__gpio_pin_) #set heating on/off
 
         self.current_temp_ = TempRead() #read temp
         if self.current_temp_ == None: #Error in temperature measurement

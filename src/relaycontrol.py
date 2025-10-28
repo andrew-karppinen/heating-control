@@ -1,6 +1,7 @@
 import RPi.GPIO as GPIO
 
-def RelayControl(on: bool):
+
+def RelayControl(on: bool,gpio_pin: int = 6):
     '''
     Control the state of a relay connected to a Raspberry Pi GPIO pin.
 
@@ -10,7 +11,7 @@ def RelayControl(on: bool):
 
 
 
-    gpio_pin = 6
+
     GPIO.setmode(GPIO.BCM)
     GPIO.setup(gpio_pin, GPIO.OUT)
 

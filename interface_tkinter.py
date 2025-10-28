@@ -61,7 +61,9 @@ def SaveSettings(heatingcontrol:object):
         'mode':mode,
         'max_temperature': heatingcontrol.max_temp_,
         'price_limit': heatingcontrol.price_limit_,
-        'temp_tracing': heatingcontrol.temp_tracking_
+        'temp_tracing': heatingcontrol.temp_tracking_,
+        'gpio_pin': heatingcontrol.GetGpioPin()
+
 
     }}
 
@@ -79,7 +81,7 @@ class GUI:
     def __init__(self): #constructor
 
 
-        self.default_settings_ = {"settings": {"thermal_limit": 16, "48h": 0, "hour_count": 23, "mode": 1, "max_temperature": 0, "price_limit": 5, "temp_tracing": False}}
+        self.default_settings_ = {"settings": {"thermal_limit": 16, "48h": 0, "hour_count": 23, "mode": 1, "max_temperature": 0, "price_limit": 5, "temp_tracing": False,"gpio_pin":6}} #default settings
 
         #load settings
         try:
@@ -93,7 +95,7 @@ class GUI:
 
             self.settings_ = self.default_settings_['settings']
 
-        self.heatingcontrol_ = HeatingControl(self.settings_['48h'],self.settings_['hour_count'],self.settings_["price_limit"],self.settings_['thermal_limit']) #luodaan lämmityksenohjaus olio ja threadi
+        self.heatingcontrol_ = HeatingControl(self.settings_['48h'],self.settings_['hour_count'],self.settings_["price_limit"],self.settings_['thermal_limit'],gpio_pin=self.settings_['gpio_pin']) #luodaan lämmityksenohjaus olio ja threadi
         self.heatingcontrol_.start() #käynnistetään lämmityksenohjaus threadi
 
         self.LoadingScreen()
@@ -233,17 +235,18 @@ class GUI:
 
 
         buttons_padx = 30
+        buttons_pady = 22
         # Sulje, Tuntinäkymä ja Asetukset napit vierekkäin
         sulje = Button(nappirivi_frame, text="Sulje sovellus", command=self.Close, font=(self.font_, self.fontti_koko_))
-        sulje.pack(side=LEFT, padx=buttons_padx, pady=0)
+        sulje.pack(side=LEFT, padx=buttons_padx, pady=buttons_pady)
 
         tuntinakyma = Button(nappirivi_frame, text="Hintanäkymä", command=self.NaytaTuntinakyma,
                              font=(self.font_, self.fontti_koko_))
-        tuntinakyma.pack(side=LEFT, padx=buttons_padx, pady=0)
+        tuntinakyma.pack(side=LEFT, padx=buttons_padx, pady=buttons_pady)
 
         asetukset_btn = Button(nappirivi_frame, text="Asetukset", command=self.SettingsMenu,
                                font=(self.font_, self.fontti_koko_))
-        asetukset_btn.pack(side=LEFT, padx=buttons_padx, pady=0)
+        asetukset_btn.pack(side=LEFT, padx=buttons_padx, pady=buttons_pady)
 
         #teksti joka kertoo onko lämmitys päällä
         self.lammitys_paalla_ = StringVar()
@@ -313,10 +316,40 @@ class GUI:
         )
         cb.pack(anchor=W)
 
+
+        # GPIO pin selection
+
+        def update_gpio_pin(event):
+            print("tässä")
+            pin = int(self.gpio_pin_var_.get())
+            self.settings_["gpio_pin"] = pin
+            self.heatingcontrol_.SetGpioPin(pin)
+            SaveSettings(self.heatingcontrol_)
+
+
+        gpio_frame = Frame(settings_win)
+        gpio_frame.pack(anchor=W, padx=10, pady=(5, 10))
+        Label(gpio_frame, text="Valitse GPIO pinni:", font=(self.font_, self.fontti_koko_)).pack(side=LEFT)
+
+        self.gpio_pin_var_ = StringVar(value=str(self.settings_["gpio_pin"]))
+        gpio_options = ["6", "12", "13"]
+        gpio_combobox = ttk.Combobox(
+            gpio_frame,
+            textvariable=self.gpio_pin_var_,
+            values=gpio_options,
+            state="readonly",
+            font=(self.font_, self.fontti_koko_)
+        )
+        gpio_combobox.pack(side=LEFT, padx=5)
+        gpio_combobox.bind("<<ComboboxSelected>>", update_gpio_pin)
+
+
         # Close button
         close_btn = Button(settings_win, text="Sulje", command=settings_win.destroy,
                            font=(self.font_, self.fontti_koko_))
         close_btn.pack(pady=(5, 10))
+
+
 
     def Close(self):
         self.heatingcontrol_.Stop() #close heating control
