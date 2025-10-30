@@ -88,6 +88,7 @@ class GUI:
             f = open(f'{GetConfigDirectory()}/settings.json')
             self.settings_ = json.load(f)['settings']
             f.close()
+            self.settings_['48h'],self.settings_['hour_count'],self.settings_["price_limit"],self.settings_['thermal_limit'],gpio_pin=self.settings_['gpio_pin']
         except: #settings file is no exist, create it and save default settings
             f = open(f'{GetConfigDirectory()}/settings.json','w')
             f.write(json.dumps(self.default_settings_))
