@@ -29,10 +29,6 @@ https://www.raspberrypi-spy.co.uk/2012/05/install-rpi-gpio-python-library/
 
 
 
-### Rele
-
-Jos haluat ohjata relettä kytke se raspberry piin pinniin GPIO 6
-
 
 ### Lämpötila sensori
 
