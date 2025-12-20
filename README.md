@@ -1,7 +1,7 @@
 
 #  Lämmityksenohjaus sovellus raspberry piille.
 
-Ohjaa lämmitystä pörssisähkön hinnan mukaan.
+Ohjaa relettä pörssisähkön hinnan mukaan.
 
 
 <img width="644" height="518" alt="kuva" src="https://github.com/user-attachments/assets/04f83664-9c51-4d77-bac1-4ccde96f0687" />
