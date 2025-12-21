@@ -18,7 +18,7 @@ GPIO.setwarnings(False) #disable warnings
 
 class HeatingControl(Thread):
 
-    def __init__(self,from_48_hour:bool = False,hour_count:int = 6,price_limit:float=5,thermal_limit:int=20,gpio_pin:int=6):
+    def __init__(self, from_48_hour:bool = False, hour_count:int = 6, price_limit:float=5, thermal_limit:int=20, gpio_pin:int=6, max_price:float = -1):
         Thread.__init__(self)
 
         self.killed_ = False
@@ -43,6 +43,8 @@ class HeatingControl(Thread):
         self.heating_on_ = False
         self.current_price_ = 0
         self.price_limit_ = price_limit #If this electricity price drops, the heating is on continuously.
+
+        self.max_price_ = max_price #If the current price exceeds this value, the heating is turned off. -1 = disabled
 
         self.timelimit_ = 7 #Checking if the temperature falls below the threshold, every 7 seconds.
 
@@ -212,9 +214,13 @@ class HeatingControl(Thread):
 
         self.__hour_count_ = hour_count * 4 #set hour count
 
+
     def GetHourCount(self)->int:
         return self.__hour_count_ // 4
-    
+
+    def SetMaxPrice(self, max_price:float)->None:
+        self.max_price_ = max_price
+
     def SetPriceLimit(self,limit:int):
         self.price_limit_ = limit
     
@@ -294,8 +300,6 @@ class HeatingControl(Thread):
 
 
 
-
-
             if self.running_ == True:  #if automaticly heating
                 
                 
@@ -317,7 +321,7 @@ class HeatingControl(Thread):
 
 
                 #price not falls below the threshold.
-                elif self.is_chapest_hour_ : #the current hour is among the cheapest.
+                elif self.is_chapest_hour_ and self.max_price_ >= self.current_price_ or self.max_price_ == -1: #the current hour is among the cheapest.
                     self.__SetHeatingOn()
 
                 else: #the current hour is not among the cheapest.
@@ -328,7 +332,7 @@ class HeatingControl(Thread):
                         self.__SetHeatingOff()
 
 
-                if self.temp_tracking_ == True and self.error_in_temp_read_== False and time.time() - timer > self.timelimit_: #temperature
+                if self.temp_tracking_ == True and self.error_in_temp_read_== False and time.time() - timer > self.timelimit_: #temperature update
                     timer = time.time()
                     
                     self.current_temp_ = TempRead()
@@ -338,12 +342,6 @@ class HeatingControl(Thread):
                         continue
 
 
-                    if self.current_temp_ < self.thermal_limit_: #current temperature falls below the threshold
-                        self.__SetHeatingOn()
-
-                        
-                    elif self.__IsChapestHour() == False: #The current hour is not among the cheapest
-                        self.__SetHeatingOff()
 
 
 

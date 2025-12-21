@@ -62,7 +62,8 @@ def SaveSettings(heatingcontrol:object):
         'max_temperature': heatingcontrol.max_temp_,
         'price_limit': heatingcontrol.price_limit_,
         'temp_tracing': heatingcontrol.temp_tracking_,
-        'gpio_pin': heatingcontrol.GetGpioPin()
+        'gpio_pin': heatingcontrol.GetGpioPin(),
+        'max_price': heatingcontrol.max_price_
 
 
     }}
@@ -81,14 +82,14 @@ class GUI:
     def __init__(self): #constructor
 
 
-        self.default_settings_ = {"settings": {"thermal_limit": 16, "48h": 0, "hour_count": 23, "mode": 1, "max_temperature": 0, "price_limit": 5, "temp_tracing": False,"gpio_pin":6}} #default settings
+        self.default_settings_ = {"settings": {"thermal_limit": 16, "48h": 0, "hour_count": 23, "mode": 1, "max_temperature": 0, "price_limit": 5, "temp_tracing": False,"gpio_pin":6,"max_price":-1}} #default settings
 
         #load settings
         try:
             f = open(f'{GetConfigDirectory()}/settings.json')
             self.settings_ = json.load(f)['settings']
             f.close()
-            self.settings_['48h'],self.settings_['hour_count'],self.settings_["price_limit"],self.settings_['thermal_limit'],gpio_pin=self.settings_['gpio_pin']
+            self.settings_['48h'],self.settings_['hour_count'],self.settings_["price_limit"],self.settings_['thermal_limit'],self.settings_['gpio_pin'], self.settings_['max_price']
         except: #settings file is no exist, create it and save default settings
             f = open(f'{GetConfigDirectory()}/settings.json','w')
             f.write(json.dumps(self.default_settings_))
@@ -96,11 +97,10 @@ class GUI:
 
             self.settings_ = self.default_settings_['settings']
 
-        self.heatingcontrol_ = HeatingControl(self.settings_['48h'],self.settings_['hour_count'],self.settings_["price_limit"],self.settings_['thermal_limit'],gpio_pin=self.settings_['gpio_pin']) #luodaan lämmityksenohjaus olio ja threadi
+        self.heatingcontrol_ = HeatingControl(self.settings_['48h'],self.settings_['hour_count'],self.settings_["price_limit"],self.settings_['thermal_limit'],gpio_pin=self.settings_['gpio_pin'],max_price=self.settings_["max_price"]) #luodaan lämmityksenohjaus olio ja threadi
         self.heatingcontrol_.start() #käynnistetään lämmityksenohjaus threadi
 
         self.LoadingScreen()
-
         #määritellään joitain muuttujia:
         self.font_ = "Arial" #käytettävä fontti
         self.fontti_koko_ = 16 #fontin koko
@@ -109,6 +109,12 @@ class GUI:
         self.min_hintaraja_ = -20
 
         self.nappi_painettu_ = False
+
+
+        # max price (€/snt tms)
+        self.max_price_ = IntVar(value=self.settings_["max_price"])
+        self.max_max_price_ = 40
+        self.min_max_price_ = 0
 
 
         #ikkunaan tulevat jutut:
@@ -120,15 +126,13 @@ class GUI:
         tuntimaara_label.pack(side=LEFT)
         self.tuntimaara_ = IntVar(value=self.settings_["hour_count"])
 
-        lisaa_tuntimaara = Button(tuntimaara_frame, text="         -      ",font=(self.font_, self.fontti_koko_)) #vähennä button
+        lisaa_tuntimaara = Button(tuntimaara_frame, text="         -      ",font=(self.font_, self.fontti_koko_),command=self.PienennaTuntimaara) #vähennä button
         lisaa_tuntimaara.pack(side=LEFT)
         self.tuntimaara_ilmaisin_label_ = Label(tuntimaara_frame, text=str(self.tuntimaara_.get()),font=(self.font_, self.fontti_koko_)) #tuntimäärä ilmaisn tekssti
         self.tuntimaara_ilmaisin_label_.pack(side=LEFT)
         vahenna_tuntimaara = Button(tuntimaara_frame, text="            +         ",font=(self.font_, self.fontti_koko_),command=self.LisaaTuntimaara) #kasvata button
         vahenna_tuntimaara.pack(side=LEFT)
 
-        lisaa_tuntimaara.bind("<ButtonPress-1>", self.NappiPohjaan)
-        lisaa_tuntimaara.bind("<ButtonRelease-1>", self.NappiYlos)
 
         #hintaraja
         hintaraja_frame  = Frame(window)
@@ -175,6 +179,39 @@ class GUI:
         vahenna_min_lampotila = Button(lampotila_raja_frame, text="        +         ", font=(self.font_, self.fontti_koko_), command=self.KasvataLampotilarajaa) #kasvata button
         vahenna_min_lampotila.pack(side=LEFT)
 
+        # Maksimihinta
+        max_price_frame = Frame(window)
+        max_price_frame.pack(anchor=W, padx=10, pady=(20, 0))
+
+        max_price_label = Label(
+            max_price_frame,
+            text="Maksimihinta:            ",
+            font=(self.font_, self.fontti_koko_)
+        )
+        max_price_label.pack(side=LEFT)
+
+        vahenna_max_price = Button(
+            max_price_frame,
+            text="          -        ",
+            font=(self.font_, self.fontti_koko_),
+            command=self.PienennaMaxPrice
+        )
+        vahenna_max_price.pack(side=LEFT)
+
+        self.max_price_ilmaisin_label_ = Label(
+            max_price_frame,
+            font=(self.font_, self.fontti_koko_)
+        )
+        self.max_price_ilmaisin_label_.pack(side=LEFT)
+        self.PaivitaMaxPriceLabel()
+
+        lisaa_max_price = Button(
+            max_price_frame,
+            text="          +         ",
+            font=(self.font_, self.fontti_koko_),
+            command=self.LisaaMaxPrice
+        )
+        lisaa_max_price.pack(side=LEFT)
 
 
 
@@ -252,21 +289,21 @@ class GUI:
         #teksti joka kertoo onko lämmitys päällä
         self.lammitys_paalla_ = StringVar()
         self.lammitys_paalla_.set("Lämmitys ei ole tällä hetkellä päällä!")
-        
+
         Label(checkbutton_frame, textvariable=self.lammitys_paalla_,font=(self.font_, self.fontti_koko_)).grid(row =10,column=1,sticky="w")
 
-    
+
         #teksti joka näyttää nykyisen sähkönhinnan
         self.hinta_nyt_ = StringVar()
         self.hinta_nyt_.set("Sähkön hinta nyt: 0.0 snt")
-        
+
         Label(checkbutton_frame, textvariable=self.hinta_nyt_,font=(self.font_, self.fontti_koko_)).grid(row =11,column=1,sticky="w")
 
 
         #teksti joka kertoo onko sähkön hintatiedot haettu onnistuneesti
         self.hinnat_haettu_ = StringVar()
         self.hinnat_haettu_.set("Hintatiedot haettu onnistuneesti!",)
-        
+
         Label(checkbutton_frame, textvariable=self.hinnat_haettu_,font=(self.font_, self.fontti_koko_)).grid(row =12,column=1,sticky="w")
 
         # Asetetaan oletusvalinnat
@@ -430,6 +467,57 @@ class GUI:
             self.heatingcontrol_.SetManuallyOn()
         SaveSettings(self.heatingcontrol_) #save settings to json file
 
+    def LisaaMaxPrice(self):
+        value = self.max_price_.get()
+
+        # jos jo pois päältä (∞), ei kasvateta
+        if value == -1:
+            return
+
+        # jos saavutetaan maksimi → vaihda ∞
+        if value >= self.max_max_price_:
+            self.max_price_.set(-1)
+            self.heatingcontrol_.SetMaxPrice(-1)
+            SaveSettings(self.heatingcontrol_)
+            self.PaivitaMaxPriceLabel()
+            return
+
+        value += 1
+        self.max_price_.set(value)
+
+        self.heatingcontrol_.SetMaxPrice(float(value))
+        SaveSettings(self.heatingcontrol_)
+        self.PaivitaMaxPriceLabel()
+
+    def PienennaMaxPrice(self):
+        value = self.max_price_.get()
+
+        # jos ∞ → palataan maksimiin
+        if value == -1:
+            self.max_price_.set(self.max_max_price_)
+            self.heatingcontrol_.SetMaxPrice(float(self.max_max_price_))
+            SaveSettings(self.heatingcontrol_)
+            self.PaivitaMaxPriceLabel()
+            return
+
+        if value <= self.min_max_price_:
+            return
+
+        value -= 1
+        self.max_price_.set(value)
+
+        self.heatingcontrol_.SetMaxPrice(float(value))
+        SaveSettings(self.heatingcontrol_)
+        self.PaivitaMaxPriceLabel()
+
+    def PaivitaMaxPriceLabel(self):
+        value = self.max_price_.get()
+        if value == -1:
+            self.max_price_ilmaisin_label_.config(text="∞")
+        else:
+            self.max_price_ilmaisin_label_.config(text=str(value))
+
+
 
     def LisaaTuntimaara(self):
         '''
@@ -462,13 +550,7 @@ class GUI:
 
 
 
-    def NappiPohjaan(self,event):
-        self.nappi_painettu_ = True
-        self.PienennaTuntimaara()
 
-
-    def NappiYlos(self,event):
-        self.nappi_painettu_ = False
 
     def PienennaTuntimaara(self):
         '''
@@ -588,6 +670,8 @@ class GUI:
         SaveSettings(self.heatingcontrol_)  # save settings to json file
 
         self.max_lampotila_ilmaisin_label_.config(text=str(value))  # Päivitä Label-widgetin teksti
+
+
 
 
     def PienennaLampotilarajaa(self):
