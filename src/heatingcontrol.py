@@ -120,7 +120,8 @@ class HeatingControl(Thread):
         hours = []
         for hour in sorted_list:
 
-            if counter <= self.__hour_count_-1:
+
+            if counter <= self.__hour_count_-1 and hour["price"] < self.max_price_ or self.max_price_ == -1:
                 hours.append([hour["startDate"],hour["price"],True])
 
             elif hour["price"] < self.price_limit_:
