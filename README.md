@@ -41,3 +41,8 @@ https://pimylifeup.com/raspberry-pi-humidity-sensor-dht22/
 
 ### Käynnistä sovellus:
 > python3 interface_tkinter.py
+
+
+### Päivitys
+Skripti jota voi halutessaan käyttää uuden ohjelmaversion automaattiseen hakemiseen esim. käynnistyksen yhteydessä.
+https://gist.github.com/andrew-karppinen/3e54e12b70974a41da73bd9e1c4e8af4
